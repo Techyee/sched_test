@@ -77,23 +77,25 @@ int print_taskinfo(task_info* task)
 	printf("write_exec : %d\n",task->write_num*WRITE_LTN);
 	printf("write_period : %d\n",task->write_period);
 	printf("gc_period : %d\n",task->gc_period);
-	printf("total_util : %f\n",task->task_util);
+	printf("total_util : %f, r,w,gc :(%f,%f,%f)\n",task->task_util,
+												   (float)task->read_num*READ_LTN / (float)task->read_period,
+												   (float)task->write_num*WRITE_LTN / (float)task->write_period,
+												   (float)GC_EXEC / (float)task->gc_period);
+
 	printf("======= INFO END =======\n");
 }
 
-task_info** generate_taskset(int task_num, double util)
+task_info** generate_taskset(int task_num, double util,int chip)
 {
 	// make a taskset using a generate_taskinfo function.
 	int i;
 	task_info* taskset[task_num];
 	//generate uniform utilization taskset.
-	srand((unsigned int)time(NULL));
 	for(i=0;i<task_num;i++)
 	{
-		taskset[i] = generate_taskinfo(taskset[i],i,util/(task_num*2.0),util/(task_num*2.0),CHANNEL_NB*WAY_NB);
+		taskset[i] = generate_taskinfo(taskset[i],i,util/(task_num*2.0),util/(task_num*2.0),chip);
 		print_taskinfo(taskset[i]);
 	}
 	return taskset;	
 }	
 
-task_info** uunifest_generate_taskset(int task_num, double util)

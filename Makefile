@@ -12,6 +12,10 @@ gen_task.o : gen_task.c
 main.o : main.c
 	$(CC) -c -o main.o main.c
 
+test_partftl.o : test_partftl.c
+	$(CC) -c -o test_partftl.o test_partftl.c
+
 clean:
+	rm -f *.o
 	rm $(OBJECT) $(TARGET)
 

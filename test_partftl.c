@@ -1,18 +1,21 @@
 #include "sched_simul.h"
 
+//parameters
 int ENCOD_LTN = 1200;
 int DECOD_LTN = 1200;
 int PARITY_CHIP = 4;
 int DATA_CHIP = 12;
 int W_CHIP = 4;
 int R_CHIP = 12;
+//!parameters
+
 int test_PARTFTL(int task_num, task_info* task){
 	
     /* this function initiates schedulability test based on PaRT_FTL.
 	 * we must check both of read schedulability test and write schedulability test.
-     * 1. get the read and write request information from task_info structure.
-     * 2. calculate the read and write utilization according to PaRT_FTL paper. 
-     * 3. calculate encoding and GC utilization according to PaRT_FTL paper.
+	 * 1. get the read and write request information from task_info structure.
+	 * 2. calculate the read and write utilization according to PaRT_FTL paper. 
+	 * 3. calculate encoding and GC utilization according to PaRT_FTL paper.
 	 */
 
     task_info* temp;
@@ -57,9 +60,14 @@ int test_PARTFTL(int task_num, task_info* task){
 
     }
     //now, check if the read_util or write_util goes over 1.
-
-
-        
+	if((read_util > 1.0) || (write_util > 1.0))
+	{
+		printf("schedule failed, read : %f, write : %f\n",read_util, write_util);
+	}
+	else
+		printf("schedule successed, read : %f, write : %f\n",read_util, write_util);
     
+	return 0;
+
 }
 
