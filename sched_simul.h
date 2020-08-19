@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 typedef struct _task_info{
 	int task_id;
 	int read_num;
@@ -16,7 +17,7 @@ task_info** generate_taskset(int task_num, double util);
 int destroy_taskinfo(int task_num, task_info** task);
 int print_taskinfo(task_info* task);
 
-int test_PARTFTL(task_info* task);
+int test_PARTFTL(int task_num, task_info* task);
 int test_naive(task_info* task);
 int test_UPI(task_info* task);
 int test_TTC(task_info* task);

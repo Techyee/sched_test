@@ -93,5 +93,7 @@ task_info** generate_taskset(int task_num, double util)
 		taskset[i] = generate_taskinfo(taskset[i],i,util/(task_num*2.0),util/(task_num*2.0),CHANNEL_NB*WAY_NB);
 		print_taskinfo(taskset[i]);
 	}
-	return taskset;		
+	return taskset;	
 }	
+
+task_info** uunifest_generate_taskset(int task_num, double util)
