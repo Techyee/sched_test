@@ -32,5 +32,6 @@ int test_UPI(task_info* task);
 int test_TTC(task_info* task);
 
 //bin_packing function
-int pack_wfd(int task_num, task_info** task);
+int pack_channelbin(int task_num, task_info** task);
+int pack_waybin(int task_num, task_info** task);
 

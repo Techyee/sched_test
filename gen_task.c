@@ -4,8 +4,8 @@
 //based on Utilitarian Performance Isolation(UPI) paper
 int PAGE_PER_BLOCK = 128;
 double OP_RATE = 0.75;
-int CHANNEL_NB = 4;
-int WAY_NB = 4;
+int CHANNEL_NB = 4; //bin-packing only support 4 chan now.
+int WAY_NB = 4; //bin-packing only support 4 way now.
 int READ_LTN = 50;
 int WRITE_LTN = 500;
 int ERASE_LTN = 5000;
