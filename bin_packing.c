@@ -17,6 +17,9 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		 bins[1] = 0.0;
 		 bins[2] = -1.0;
 		 bins[3] = -1.0;
+
+		 //case1: [2-chan,2-chan] bin
+
 	}
 
 	else if(util_sum <= 3.0){
