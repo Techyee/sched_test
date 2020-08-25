@@ -3,16 +3,6 @@
 //parameters
 //based on Utilitarian Performance Isolation(UPI) paper
 
-#define PAGE_PER_BLOCK 128
-#define OP_RATE 0.75
-#define CHANNEL_NB  4 //bin-packing only support 4 chan now.
-#define WAY_NB 4 //bin-packing only support 4 way now.
-#define READ_LTN 50
-#define WRITE_LTN 500
-#define ERASE_LTN 5000
-#define DATA_TRANS 40
-#define GC_EXEC 550*128*0.75 + 5000
-
 //!parameters
 
 task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int wnum)
@@ -69,7 +59,7 @@ int generate_gcinfo(task_info* task, int chip)
 	//generate GC only if there's write task(identified by positive write period).
 	if(task->write_period > 0)
 	{
-		//check the how many GCs are necessary for single write job.
+		//check how many GCs are necessary for single write job.
 		gc_period_ratio = (float)task->write_num/(float)gc_threshold;
 
 		//determine the gc period.
@@ -85,7 +75,8 @@ int generate_gcinfo(task_info* task, int chip)
 
 		//record the gc period.
 		task->gc_period = (int)gc_period_float;
-
+		
+		printf("gc_exec : %f, gc_period : %f, util : %f\n",(float)GC_EXEC , (float)task->gc_period ,(float)GC_EXEC / (float)task->gc_period);
 		//update the task_util.
 		task->task_util = (float)task->read_num*READ_LTN / (float)task->read_period +
 						  (float)task->write_num*WRITE_LTN / (float)task->write_period +
@@ -184,7 +175,7 @@ task_info** generate_taskset(int task_num, double util,int chip)
 	//generate uniform utilization taskset.
 	for(i=0;i<task_num;i++)
 	{
-		rand_util = rand()%9 * 0.1 + 0.1;
+		rand_util = rand()%9 * 0.2 / 5 + 0.1;
 		rand_ratio1 = rand()%10;
 		rand_ratio2 = rand()%10;
 		util1 = rand_util * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);

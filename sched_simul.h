@@ -11,7 +11,7 @@
 #define WRITE_LTN 500
 #define ERASE_LTN 5000
 #define DATA_TRANS 40
-#define GC_EXEC 550*128*0.75 + 5000
+#define GC_EXEC (550*128*0.75 + 5000)
 
 typedef struct _task_info{
 	int task_id;

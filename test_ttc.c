@@ -13,6 +13,8 @@ int test_TTC(int task_num, task_info** task)
 	for(i=0;i<task_num;i++)
 	{
 		generate_gcinfo(task[i],16);
+		printf("after gcinfo is generated,\n");
+		print_taskinfo(task[i]);
 		util_sum += task[i]->task_util;
 	}
 

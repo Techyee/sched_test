@@ -57,14 +57,14 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		for(i=0;i<task_num;i++){
 			task_info temp;
 			temp = *task[i];
-			generate_gcinfo(temp,12);
-			util1 = temp->task_util;
+			generate_gcinfo(&temp,12);
+			util1 = temp.task_util;
 			util2 = task[i]->task_util;
-			if(1.0-bins[0]-util1 < 1.0-bins[1]-util2)
+			if(1.0-bins[0]-util1 < 1.0-bins[1]-util2){
 			//tweaked-WFD : choose the bin which has more space AFTER allocation.
-				bins[1] += util2;
-			else
-				bins[0] += util1;
+				bins[1] += util2;}
+			else{
+				bins[0] += util1;}
 		}
 		if((bins[0] <= 1.0) && (bins[1] <= 1.0))
 		{
@@ -97,7 +97,9 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		bin2[3] = -1.0;
 
 	}
+
 	*/
+	}
 }    
 	
 
