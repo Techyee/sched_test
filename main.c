@@ -28,5 +28,12 @@ int main(void)
 	}
 	fclose(fp);
 	*/
+	
+	quick_sort(test_task,0,9);
+	for(i=0;i<9;i++)
+	{
+		print_taskinfo(test_task[i]);
+	}
+	
 	return 0;
 }

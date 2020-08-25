@@ -2,15 +2,17 @@
 
 //parameters
 //based on Utilitarian Performance Isolation(UPI) paper
-int PAGE_PER_BLOCK = 128;
-double OP_RATE = 0.75;
-int CHANNEL_NB = 4; //bin-packing only support 4 chan now.
-int WAY_NB = 4; //bin-packing only support 4 way now.
-int READ_LTN = 50;
-int WRITE_LTN = 500;
-int ERASE_LTN = 5000;
-int DATA_TRANS = 40;
-int GC_EXEC = 550*128*0.75 + 5000;
+
+#define PAGE_PER_BLOCK 128
+#define OP_RATE 0.75
+#define CHANNEL_NB  4 //bin-packing only support 4 chan now.
+#define WAY_NB 4 //bin-packing only support 4 way now.
+#define READ_LTN 50
+#define WRITE_LTN 500
+#define ERASE_LTN 5000
+#define DATA_TRANS 40
+#define GC_EXEC 550*128*0.75 + 5000
+
 //!parameters
 
 task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int wnum)
@@ -175,7 +177,10 @@ task_info** generate_taskset(int task_num, double util,int chip)
 	int i;
 	double rand_util, util1, util2;
 	int rand_ratio1, rand_ratio2;
-	task_info* taskset[task_num];
+	task_info** taskset;
+	
+	taskset = (task_info**)malloc(sizeof(task_info*)*task_num);
+
 	//generate uniform utilization taskset.
 	for(i=0;i<task_num;i++)
 	{
