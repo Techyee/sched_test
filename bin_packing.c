@@ -47,7 +47,7 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		 }
 		//case 1 end.
 
-		//case2: [1-chan,3-chan] bin
+		//case2: [3-chan,1-chan] bin
 		for(i=0;i<task_num;i++){//we sort the task according to worst case gc among the bins.
 			generate_gcinfo(task[i],4);
 		}
@@ -61,6 +61,7 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 			util1 = temp->task_util;
 			util2 = task[i]->task_util;
 			if(1.0-bins[0]-util1 < 1.0-bins[1]-util2)
+			//tweaked-WFD : choose the bin which has more space AFTER allocation.
 				bins[1] += util2;
 			else
 				bins[0] += util1;
@@ -71,7 +72,22 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 			return 0;
 		}
 		//case 2 end.
-
+	/*
+		//case3: [2-chan,1-chan,1-chan] bin
+		for(i=0;i<task_num;i++){
+			generate_gcinfo(task[i],4);
+		}
+		bin_max = 3;
+		target_idx = 0;
+		quick_sort(tas,0,task_num-1);
+		for(i=0;i<task_num;i++){
+			task_info temp;
+			temp = *task[i];
+			geanerate_gcinfo(temp,8);
+			util1 = temp->task_util;
+			util2 = task[i]->task_util;
+			for(j=0;j<bin_max;j++){
+				
 	}
 
 	if(util_sum <= 3.0){
@@ -81,7 +97,7 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		bin2[3] = -1.0;
 
 	}
-
+	*/
 }    
 	
 
