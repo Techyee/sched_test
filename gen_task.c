@@ -186,8 +186,8 @@ task_info** generate_taskset(int task_num, double util,int chip)
 	//generate Uunifast style utilization taskset.
 	for(i=0;i<task_num;i++)
 	{
-		rand_ratio1 = rand()%10;
-		rand_ratio2 = rand()%10;
+		rand_ratio1 = rand()%10+1;
+		rand_ratio2 = rand()%10+1;
 		util1 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);
 		util2 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio2 / ((float)rand_ratio1 + (float)rand_ratio2);
 		taskset[i] = generate_taskinfo(i,util1,util2,-1,-1);

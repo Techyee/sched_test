@@ -38,13 +38,16 @@ int destroy_taskinfo(int task_num, task_info** task);
 int print_taskinfo(task_info* task);
 
 //schedulability test function
-int test_PARTFTL(int task_num, task_info** task);
-int test_TTC(int task_num, task_info** task);
+int myceil(float input);
+int test_PARTFTL(int task_num, task_info** task, FILE* fp);
+int test_TTC(int task_num, task_info** task, FILE* fp);
 int test_naive(task_info* task);
 int test_UPI(task_info* task);
 
 //bin_packing function
 int pack_channelbin(int task_num, task_info** task,double util_sum);
+int pack_channel_3bin(int task_num, task_info** task, double util_sum);
+int pack_channel_4bin(int task_num, task_info** task, double util_sum);
 int pack_waybin(int task_num, task_info** task,double util_sum);
 
 //utils

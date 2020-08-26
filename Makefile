@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS= -g -Wall
 TARGET = sched.out
-OBJS = gen_task.o main.o test_ttc.o utils.o bin_packing.o
+OBJS = gen_task.o main.o test_partftl.o test_ttc.o utils.o bin_packing.o
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $(OBJS)
