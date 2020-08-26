@@ -9,7 +9,7 @@ int main(void)
 	
 	//taskset generation main code.
 	srand(time(NULL));
-	test_task = generate_taskset(5,(float)i * 0.05,16);
+	test_task = generate_taskset(5,1.25,16);
 	test_TTC(5,test_task);
 	return 0;
 }
