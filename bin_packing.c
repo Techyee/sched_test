@@ -97,13 +97,17 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 
 int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 {
-	/*packing tasks with 3 bin. partition setting = [2,1,1]*/
+	/*packing tasks with 3 bin. partition setting = [2,1,1]
+	 *pack_channel and pack_channel_3bin will be merged someday.
+	 */
 	int res, i, j, bin_max, target_idx;
 	float util1, util2;
 	double bins[3] = {0.0 , };
 	for(i=0;i<task_num;i++){
 		generate_gcinfo(task[i], 4);
 	}
+
+	//init and sort.
 	bin_max = 3;
 	target_idx = 0;
 	quick_sort(task,0,task_num-1);
@@ -135,9 +139,9 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 				target_idx = 2;
 			}
 		}
-
-
-
+		bins[target_idx] += task[i]->task_util;
+	}
+}
 		
 
 int pack_waybin(int task_num, task_info** task,double util_sum)
