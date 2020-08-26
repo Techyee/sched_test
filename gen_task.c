@@ -76,7 +76,6 @@ int generate_gcinfo(task_info* task, int chip)
 		//record the gc period.
 		task->gc_period = (int)gc_period_float;
 		
-		printf("gc_exec : %f, gc_period : %f, util : %f\n",(float)GC_EXEC , (float)task->gc_period ,(float)GC_EXEC / (float)task->gc_period);
 		//update the task_util.
 		task->task_util = (float)task->read_num*READ_LTN / (float)task->read_period +
 						  (float)task->write_num*WRITE_LTN / (float)task->write_period +
@@ -126,7 +125,7 @@ int print_taskinfo(task_info* task)
 task_info* generate_wandgc(int tid, double util, int wnum, int chip,FILE* fp)
 {
 	/* make an examplary task to compare the write intensity and gc overhead.
-	 * use this information to check if the limit of write util according to the chip num.
+	 * use this information to check the limit of write util according to the chip num.
 	 */
 	double gc_threshold = (float)chip*(1.0-OP_RATE)*PAGE_PER_BLOCK;
 	double gc_period_ratio = 0.0;
@@ -166,20 +165,31 @@ task_info** generate_taskset(int task_num, double util,int chip)
 {
 	// make a taskset using a generate_taskinfo function.
 	int i;
-	double rand_util, util1, util2;
+	double total_util, util1, util2;
 	int rand_ratio1, rand_ratio2;
-	task_info** taskset;
+	int util_ratios[task_num];
+	int util_ratio_sum;
 	
+	//init parameters
+	task_info** taskset;
+	total_util = util;
+	util_ratio_sum = 0;
 	taskset = (task_info**)malloc(sizeof(task_info*)*task_num);
-
-	//generate uniform utilization taskset.
+	
+	//generate util ratio randomly.
 	for(i=0;i<task_num;i++)
 	{
-		rand_util = rand()%9 * 0.2 / 5 + 0.1;
+		util_ratios[i] = rand()%10 + 1;
+		util_ratio_sum += util_ratios[i];
+	}
+	
+	//generate Uunifast style utilization taskset.
+	for(i=0;i<task_num;i++)
+	{
 		rand_ratio1 = rand()%10;
 		rand_ratio2 = rand()%10;
-		util1 = rand_util * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);
-		util2 = rand_util * (float)rand_ratio2 / ((float)rand_ratio1 + (float)rand_ratio2);
+		util1 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);
+		util2 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio2 / ((float)rand_ratio1 + (float)rand_ratio2);
 		taskset[i] = generate_taskinfo(i,util1,util2,-1,-1);
 		print_taskinfo(taskset[i]);
 	}
