@@ -61,11 +61,12 @@ int generate_gcinfo(task_info* task, int chip)
 	{
 		//check how many GCs are necessary for single write job.
 		gc_period_ratio = (float)task->write_num/(float)gc_threshold;
-
+		
 		//determine the gc period.
 		if(gc_threshold < task->write_num)
 		{
-			gc_period_float = (float)task->write_period/gc_period_ratio;
+			temp = myceil(gc_period_ratio);
+			gc_period_float = (float)task->write_period/temp;
 		}
 		else
 		{
@@ -170,6 +171,10 @@ task_info** generate_taskset(int task_num, double util,int chip)
 	int util_ratios[task_num];
 	int util_ratio_sum;
 	
+	int r_period;
+	int w_period;
+	int r_num;
+	int w_num;
 	//init parameters
 	task_info** taskset;
 	total_util = util;
@@ -184,15 +189,21 @@ task_info** generate_taskset(int task_num, double util,int chip)
 	}
 	
 	//generate Uunifast style utilization taskset.
+	//if necessary, specify the period, calculate the number of page, and insert it as parameter.
 	for(i=0;i<task_num;i++)
 	{
 		rand_ratio1 = rand()%10+1;
 		rand_ratio2 = rand()%10+1;
 		util1 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);
 		util2 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio2 / ((float)rand_ratio1 + (float)rand_ratio2);
-		taskset[i] = generate_taskinfo(i,util1,util2,-1,-1);
+		r_period = (rand()%400 + 100) * 1000;
+		w_period = (rand()%400 + 100) * 1000;
+	        r_num = (int)(util1*(float)r_period / (float)READ_LTN);
+		w_num = (int)(util2*(float)w_period / (float)WRITE_LTN);	
+		taskset[i] = generate_taskinfo(i,util1,util2,r_num,w_num);
 		print_taskinfo(taskset[i]);
 	}
 	return taskset;	
-}	
+}
+
 

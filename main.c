@@ -13,8 +13,14 @@ int main(void)
 	
 	task_info** test_task;
 	task_info* test_task2;
+
+	srand(time(NULL));	
+	test_task = generate_taskset(3,0.5,16);
+	generate_gcinfo(test_task[0],4);
+	print_taskinfo(test_task[0]);
+	//taskset generation + testing code.
+	/*
 	
-	//taskset generation main code.
 	srand(time(NULL));
 	for(i=0;i<20;i++){
 		success_part = 0;
@@ -42,6 +48,7 @@ int main(void)
 		fprintf(fp,"%f, %d, %d, %d\n",0.1*i + 0.1,success_part,fail_part,success_part+fail_part);
 		fprintf(fp,"%f, %d, %d, %d\n",0.1*i + 0.1,success_ttc,fail_ttc,success_ttc + fail_ttc);
 	}
+	*/
 	fclose(fp);
 	fclose(fp2);
 	return 0;

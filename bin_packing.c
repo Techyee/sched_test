@@ -1,5 +1,32 @@
 #include "sched_simul.h"
 
+int find_least_in_bin(int task_num, int target_bin, task_info** task)
+{
+	//among the tasks which are inside bin, chose the least period.
+	int res, i;
+	res = -1;
+	i = 0;
+	for(i=0;i<task_num;i++){
+		if(task[i]->bin_alloc == target_bin){
+			if(res == -1){ //init
+				res = task[i]->read_period;
+				if (task[i]->read_period >= task[i]->write_period){
+					res = task[i]->write_period;
+				}
+			}
+			else{//choose the minimum task_period!
+				if(res >= task[i]->read_period){
+					res = task[i]->read_period;
+				}
+				if(res >= task[i]->write_period){
+					res = task[i]->write_period;
+				}
+			}
+		}
+	}
+	return res;	
+}
+
 int pack_channelbin(int task_num, task_info** task,double util_sum)
 {
 	/* assuming channel is partitioned, allocate tasks to each bin in WFD.
@@ -8,9 +35,10 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 	 * possible bin = [1,1,1,1] [2,1,1] [2,2] [3,1]
      */
 
-	int res, i, j, bin_max, target_idx;
+	int res, i, j, k, bin_max, target_idx;
 	float util1, util2;
 	double bins[4];
+	int blocking_period;
 
 	if(util_sum <= 2.0){
 
@@ -20,7 +48,8 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		 bins[3] = -1.0;
 
 		//case2: [3-chan,1-chan] bin
-		for(i=0;i<task_num;i++){//we sort the task according to worst case gc among the bins.
+		for(i=0;i<task_num;i++)
+		{//we sort the task according to worst case gc among the bins.
 			generate_gcinfo(task[i],4);
 		}
 		
@@ -39,21 +68,39 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 			if(1.0-bins[0]-util1 < 1.0-bins[1]-util2)//tweaked-WFD
 			{
 				bins[1] += util2;
+				task[i]->bin_alloc = 1;
 			}
 			else
 			{
 				bins[0] += util1;
+				task[i]->bin_alloc = 0;
 			}
 		}
+		//add blocking factor.
+		for(i=0;i<bin_max;i++)
+		{
+			blocking_period = find_least_in_bin(task_num,i,task);
+			bins[i] += 5000.0 / (float)blocking_period;
+		}
+		//!add blocking factor.
+		
+		//sched test.
 		if((bins[0] <= 1.0) && (bins[1] <= 1.0))
 		{
 			printf("channel packing succedded[3,1], %f %f\n",bins[0],bins[1]);
+			printf("bin allocation result is...\n");
+			for(k=0;k<10;k++)
+			{
+				printf("%d ",task[k]->bin_alloc);
+			}
+			printf("\n");	
 			return 0;
 		}
 		else
 		{
 			printf("channel packing failed[3,1], %f %f\n",bins[0],bins[1]);
 		}
+		//!sched test.
 		//case 2 end.
 
 
@@ -71,9 +118,12 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		 quick_sort(task,0,task_num-1);
 		
 		 //BP
-		 for(i=0;i<task_num;i++){
-			 for(j=0;j<bin_max;j++){
-				if(1.0 - bins[j] >= 1.0 - bins[target_idx]){ //WFD
+		 for(i=0;i<task_num;i++)
+		 {
+			 for(j=0;j<bin_max;j++)
+			 {
+				if(1.0 - bins[j] >= 1.0 - bins[target_idx])
+				{ //WFD
 					target_idx = j;
 				}
 			 }
