@@ -89,7 +89,7 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		{
 			printf("channel packing succedded[3,1], %f %f\n",bins[0],bins[1]);
 			printf("bin allocation result is...\n");
-			for(k=0;k<10;k++)
+			for(k=0;k<task_num;k++)
 			{
 				printf("%d ",task[k]->bin_alloc);
 			}

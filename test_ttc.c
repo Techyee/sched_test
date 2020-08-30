@@ -37,6 +37,7 @@ int test_TTC(int task_num, task_info** task,FILE* fp)
 		
 	}
 	blocking_period = find_least_in_bin(task_num,0,task);
+	printf("blocking period is determined as %d\n",blocking_period);
 	util_sum += (float)ERASE_LTN / (float)blocking_period;
 	printf("util_sum with blockin period is %f\n",util_sum);
 

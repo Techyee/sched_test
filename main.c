@@ -15,9 +15,9 @@ int main(void)
 	task_info* test_task2;
 
 	srand(time(NULL));	
-	test_task = generate_taskset(3,0.5,16);
+	test_task = generate_taskset(3,1.0,16);
 	generate_gcinfo(test_task[0],4);
-	print_taskinfo(test_task[0]);
+	res = test_TTC(3,test_task,fp);
 	//taskset generation + testing code.
 	/*
 	
