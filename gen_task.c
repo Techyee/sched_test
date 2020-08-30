@@ -88,6 +88,16 @@ int generate_gcinfo(task_info* task, int chip)
 	}
 	return 0;
 }
+
+int generate_dtinfo(task_info* task, int alloc_chip)
+{
+	int trans_delay = DATA_TRANS * (WAY_NB - alloc_chip);
+	task->task_util = (float)new_task->read_num * (READ_LTN + trans_delay) / (float)new_task->read_period +
+			  (float)new_task->write_num * (WRITE_LTN + trans_delay) / (float)new_task->write_period +
+			  (float)GC_EXEC / (float)task->gc_period;
+
+}
+
 int destroy_taskinfo(int task_num, task_info** task)
 {
 	int i;

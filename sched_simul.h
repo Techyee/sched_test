@@ -36,6 +36,7 @@ task_info* generate_wandgc(int tid, double util, int wnum, int chip, FILE* fp);
 task_info** generate_taskset(int task_num, double util, int chip);
 task_info** generate_taskset_period(int task_num, double util);
 int generate_gcinfo(task_info* task, int chip);
+int generate_dtinfo(task_info* task, int alloc_chip);
 int destroy_taskinfo(int task_num, task_info** task);
 int print_taskinfo(task_info* task);
 

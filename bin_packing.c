@@ -125,9 +125,11 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 				if(1.0 - bins[j] >= 1.0 - bins[target_idx])
 				{ //WFD
 					target_idx = j;
+				
 				}
 			 }
 			 bins[target_idx] += task[i]->task_util;
+			 task[i]->bin_alloc = target_idx;
 		 }
 		 //BP end
 		
@@ -172,39 +174,33 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 		generate_gcinfo(&temp,8);
 		util1 = temp.task_util;
 		util2 = task[i]->task_util;
-		if(1.0 - bins[0] - util1 > 1.0 - bins[1] - util2)
-		{
+		if(1.0 - bins[0] - util1 > 1.0 - bins[1] - util2){
 			target_idx = 0;
-			if(1.0 - bins[0] - util1 > 1.0 - bins[2] - util2)
-			{
+			if(1.0 - bins[0] - util1 > 1.0 - bins[2] - util2){
 				target_idx = 0;
 			}
 			else{
 				target_idx = 2;
 			}
 		}
-		else
-		{
+		else{
 			target_idx = 1;
-			if(1.0 - bins[1] >= 1.0 - bins[2])
-			{
+			if(1.0 - bins[1] >= 1.0 - bins[2]){
 				target_idx = 1;
 			} 
-			else 
-			{
+			else{
 				target_idx = 2;
 			}
 		}
 		bins[target_idx] += task[i]->task_util;
+		task[i]->bin_alloc = target_idx;
 
 	}
-	if((bins[0] <= 1.0) && (bins[1] <= 1.0) && (bins[2] <= 1.0))
-	{
+	if((bins[0] <= 1.0) && (bins[1] <= 1.0) && (bins[2] <= 1.0)){
 		printf("channel packing succedded[2,1,1], %f %f %f\n",bins[0],bins[1],bins[2]);
 		return 0;
 	}
-	else
-	{
+	else{
 		printf("channel packing failed[2,1,1], %f %f %f\n",bins[0],bins[1],bins[2]);
 		return 1;
 	}
@@ -232,6 +228,7 @@ int pack_channel_4bin(int task_num, task_info** task, double util_sum)
 			}
 		}
 		bins[target_idx] += task[i]->task_util;
+		task[i]->bin_alloc = target_idx;
 	}
 	//BP end
 	if((bins[0] <= 1.0) && (bins[1] <= 1.0) && (bins[2] <= 1.0) && (bins[3] <= 1.0)){
@@ -254,6 +251,41 @@ int pack_waybin(int task_num, task_info** task,double util_sum)
 	 * WFD orders tasks according to utilization of GC.
 	 * bin overflow directly results in schedulability test fail.
 	 */
+	int i,j,k,tnum;
+	int DT_TRANS;
+	int res, bin_max, target_idx;
+	float util1, util2;
+	double bins[4] = {0.0,};
+	pack_channel_4bin(task_num, task, util_sum);
+	task_info temp_task[task_num];
+	for(i=0;i<CHANNEL_NB;i++){
+		tnum = 0;
+		//pick grouped task according to the bin_alloc value.
+		for(j=0;j<task_num;j++){
+			if(task[i]->bin_alloc = i){
+				temp_task[tnum] = *(task[i]);
+				tnum++;
+			}
+		}//!picking.
+		//init 2bin packing.
+		//re-calculate utilization.
+		for(j=0;j<task_num;j++){
+			generate_gcinfo(task[i],2);
+			generate_dtinfo(task[i],2);
+		}
+
+		bin_max = 2;
+		target_idx = 0;
+		quick_sort(task,0,task_num - 1);
+		for(j=0;j<task_num;j++){
+			for(k=0;k<bin_max;k++){
+				
+	
+
+
+		
+
+		
 	return 1;
 
 }
