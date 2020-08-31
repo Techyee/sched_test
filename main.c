@@ -6,6 +6,7 @@ int main(void)
 	int i,j;
 	int res, success_part, fail_part;
 	int res2, success_ttc, fail_ttc;
+	int task_num;
 	FILE *fp;
 	FILE *fp2;
 	fp = fopen("PARTFTL_result.csv","w");
@@ -14,13 +15,12 @@ int main(void)
 	task_info** test_task;
 	task_info* test_task2;
 
-	srand(time(NULL));	
-	test_task = generate_taskset(3,1.0,16);
-	generate_gcinfo(test_task[0],4);
-	res = test_TTC(3,test_task,fp);
-	//taskset generation + testing code.
-	/*
-	
+	srand(time(NULL));
+	task_num = 10;
+	test_task = generate_taskset(task_num, 2.0, 16);
+	test_TTC(task_num,test_task,fp);
+
+/*		
 	srand(time(NULL));
 	for(i=0;i<20;i++){
 		success_part = 0;
@@ -29,7 +29,7 @@ int main(void)
 		fail_ttc = 0;
 		for(j=0;j<200;j++){
 			test_task = generate_taskset(10,0.1*i + 0.1,16);
-			res = test_PARTFTL(10,test_task, fp);
+			//res = test_PARTFTL(10,test_task, fp);
 			res2 = test_TTC(10,test_task,fp);
 			destroy_taskinfo(10,test_task);
 			if(res == 0){
@@ -45,10 +45,10 @@ int main(void)
 				fail_ttc += 1;
 			}
 		}
-		fprintf(fp,"%f, %d, %d, %d\n",0.1*i + 0.1,success_part,fail_part,success_part+fail_part);
-		fprintf(fp,"%f, %d, %d, %d\n",0.1*i + 0.1,success_ttc,fail_ttc,success_ttc + fail_ttc);
+		//fprintf(fp,"%f, %d, %d, %d\n",0.1*i + 0.1,success_part,fail_part,success_part+fail_part);
+		fprintf(fp2,"%f, %d, %d, %d\n",0.1*i + 0.1,success_ttc,fail_ttc,success_ttc + fail_ttc);
 	}
-	*/
+*/	
 	fclose(fp);
 	fclose(fp2);
 	return 0;

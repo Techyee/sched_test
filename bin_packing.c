@@ -50,7 +50,7 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		//case2: [3-chan,1-chan] bin
 		for(i=0;i<task_num;i++)
 		{//we sort the task according to worst case gc among the bins.
-			generate_gcinfo(task[i],4);
+			generate_overhead(task[i],4);
 		}
 		
 		//init and sort.
@@ -62,7 +62,7 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		for(i=0;i<task_num;i++){
 			task_info temp;
 			temp = *task[i];
-			generate_gcinfo(&temp,12);
+			generate_overhead(&temp,12);
 			util1 = temp.task_util;
 			util2 = task[i]->task_util;
 			if(1.0-bins[0]-util1 < 1.0-bins[1]-util2)//tweaked-WFD
@@ -80,7 +80,10 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		for(i=0;i<bin_max;i++)
 		{
 			blocking_period = find_least_in_bin(task_num,i,task);
-			bins[i] += 5000.0 / (float)blocking_period;
+			printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
+																  ,(float)ERASE_LTN / (float)blocking_period
+														,bins[i] + (float)ERASE_LTN / (float)blocking_period);
+			bins[i] += (float)ERASE_LTN / (float)blocking_period;
 		}
 		//!add blocking factor.
 		
@@ -107,7 +110,7 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 	    //case1: [2-chan,2-chan] bin
 		 for(i=0;i<task_num;i++)
 		 {
-			 generate_gcinfo(task[i],8);
+			 generate_overhead(task[i],8);
 		 }
 		 
 		 //reinit and sort.
@@ -118,14 +121,10 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		 quick_sort(task,0,task_num-1);
 		
 		 //BP
-		 for(i=0;i<task_num;i++)
-		 {
-			 for(j=0;j<bin_max;j++)
-			 {
-				if(1.0 - bins[j] >= 1.0 - bins[target_idx])
-				{ //WFD
+		 for(i=0;i<task_num;i++){
+			 for(j=0;j<bin_max;j++){
+				if(1.0 - bins[j] >= 1.0 - bins[target_idx]){ 
 					target_idx = j;
-				
 				}
 			 }
 			 bins[target_idx] += task[i]->task_util;
@@ -133,6 +132,14 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		 }
 		 //BP end
 		
+		 //add blocking factor
+		 for(i=0;i<bin_max;i++){
+			blocking_period = find_least_in_bin(task_num,i,task);	
+			printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
+																  ,(float)ERASE_LTN / (float)blocking_period
+														,bins[i] + (float)ERASE_LTN / (float)blocking_period);
+			bins[i] += (float)ERASE_LTN / blocking_period;
+		 }
 		 //check bin status.
 		 if((bins[0] <= 1.0 ) &&(bins[1] <= 1.0))
 		 {
@@ -156,9 +163,10 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 	int res, i, j, bin_max, target_idx;
 	float util1, util2;
 	double bins[3] = {0.0 , };
+	int blocking_period;
 	for(i=0;i<task_num;i++)
 	{
-		generate_gcinfo(task[i], 4);
+		generate_overhead(task[i], 4);
 	}
 
 	//init and sort.
@@ -171,7 +179,7 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 	{
 		task_info temp;
 		temp = *task[i];
-		generate_gcinfo(&temp,8);
+		generate_overhead(&temp,8);
 		util1 = temp.task_util;
 		util2 = task[i]->task_util;
 		if(1.0 - bins[0] - util1 > 1.0 - bins[1] - util2){
@@ -196,6 +204,14 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 		task[i]->bin_alloc = target_idx;
 
 	}
+	for(i=0;i<bin_max;i++){
+		blocking_period = find_least_in_bin(task_num,i,task);
+		printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
+															  ,(float)ERASE_LTN / (float)blocking_period
+		   													  ,bins[i] + (float)ERASE_LTN / (float)blocking_period);
+		 bins[i] += (float)ERASE_LTN / (float)task[i]->gc_period;
+	}
+	
 	if((bins[0] <= 1.0) && (bins[1] <= 1.0) && (bins[2] <= 1.0)){
 		printf("channel packing succedded[2,1,1], %f %f %f\n",bins[0],bins[1],bins[2]);
 		return 0;
@@ -206,14 +222,17 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 	}
 }
 
-int pack_channel_4bin(int task_num, task_info** task, double util_sum)
+int pack_4bin(int task_num, task_info** task, double util_sum,int way)
 {
 	int res, i, j, bin_max, target_idx;
+	int blocking_period;
 	float util1, util2;
-	double bins[4] = {0.0, };
+	double bins[4] = {0.0, };	
 	for(i=0;i<task_num;i++)
 	{
-		generate_gcinfo(task[i],4);
+		generate_overhead(task[i],4);
+		if(way == 1)
+			generate_dtinfo(task[i],1);
 	}
 
 	//init and sort.
@@ -231,6 +250,16 @@ int pack_channel_4bin(int task_num, task_info** task, double util_sum)
 		task[i]->bin_alloc = target_idx;
 	}
 	//BP end
+
+	//blocking calc
+	for(i=0;i<bin_max;i++){
+		blocking_period = find_least_in_bin(task_num,i,task);		
+		printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
+															  ,(float)ERASE_LTN / (float)blocking_period
+						  									  ,bins[i] + (float)ERASE_LTN / (float)blocking_period);	
+		bins[i] += (float)ERASE_LTN / (float)blocking_period;
+	}//!blocking calc
+
 	if((bins[0] <= 1.0) && (bins[1] <= 1.0) && (bins[2] <= 1.0) && (bins[3] <= 1.0)){
 		printf("channel packing succeeded[1,1,1,1], %f %f %f %f\n",bins[0],bins[1],bins[2],bins[3]);
 		return 0;
@@ -270,22 +299,18 @@ int pack_waybin(int task_num, task_info** task,double util_sum)
 		//init 2bin packing.
 		//re-calculate utilization.
 		for(j=0;j<task_num;j++){
-			generate_gcinfo(task[i],2);
-			generate_dtinfo(task[i],2);
+			generate_overhead(task[i],2);
 		}
-
+		
 		bin_max = 2;
 		target_idx = 0;
 		quick_sort(task,0,task_num - 1);
 		for(j=0;j<task_num;j++){
 			for(k=0;k<bin_max;k++){
+			}
+		}
 				
-	
-
-
-		
-
-		
+	}	
 	return 1;
 
 }

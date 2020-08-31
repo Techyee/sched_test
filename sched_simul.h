@@ -9,7 +9,7 @@
 #define WAY_NB 4 //bin-packing only support 4 way now.
 #define READ_LTN 50
 #define WRITE_LTN 500
-#define ERASE_LTN 1500
+#define ERASE_LTN 5000
 #define DATA_TRANS 40
 #define GC_EXEC (550*128*0.75 + 5000)
 
@@ -35,9 +35,7 @@ task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int 
 task_info* generate_wandgc(int tid, double util, int wnum, int chip, FILE* fp);
 task_info** generate_taskset(int task_num, double util, int chip);
 task_info** generate_taskset_period(int task_num, double util);
-int generate_gcinfo(task_info* task, int chip);
-int generate_dtinfo(task_info* task, int alloc_chip);
-int destroy_taskinfo(int task_num, task_info** task);
+int generate_overhead(task_info* task, int chip);
 int print_taskinfo(task_info* task);
 
 //schedulability test function
@@ -51,7 +49,7 @@ int test_UPI(task_info* task);
 int find_least_in_bin(int task_num, int target_bin, task_info** task);
 int pack_channelbin(int task_num, task_info** task,double util_sum);
 int pack_channel_3bin(int task_num, task_info** task, double util_sum);
-int pack_channel_4bin(int task_num, task_info** task, double util_sum);
+int pack_4bin(int task_num, task_info** task, double util_sum, int way);
 int pack_waybin(int task_num, task_info** task,double util_sum);
 
 //utils

@@ -18,22 +18,20 @@ int test_TTC(int task_num, task_info** task,FILE* fp)
 	rutil_sum = 0.0;
 	wutil_sum = 0.0;
 	gcutil_sum = 0.0;
+
+	//global allocation test code
 	for(i=0;i<task_num;i++)
 	{
-		generate_gcinfo(task[i],16);
-		//printf("util is %f\n",task[i]->task_util);
+		generate_overhead(task[i],16);
 		util_sum += task[i]->task_util;
 		task[i]->bin_alloc = 0;
-		//printf("current util_sum is %f\n",util_sum);
 		
 		rutil = (float)(task[i]->read_num * READ_LTN) / (float)task[i]->read_period;
 		wutil = (float)(task[i]->write_num * WRITE_LTN) / (float)task[i]->write_period;
 		gcutil = (float)GC_EXEC / (float)task[i]->gc_period;
-		//printf("global alloc utils : %f, %f, %f\n",rutil,wutil,gcutil);
 		rutil_sum += rutil;
 		wutil_sum += wutil;
 		gcutil_sum += gcutil;
-		printf("%f, %f, %f\n",rutil_sum,wutil_sum,gcutil_sum);
 		
 	}
 	blocking_period = find_least_in_bin(task_num,0,task);
@@ -47,6 +45,7 @@ int test_TTC(int task_num, task_info** task,FILE* fp)
 		printf("task is schedulable(global)\n");
 		return 0;
 	}
+	//!global allocation test.
 
 	else if(util_sum < (double)CHANNEL_NB) //try channel-level BP.
 	{

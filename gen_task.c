@@ -42,22 +42,32 @@ task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int 
 		new_task->write_period = -1;
 	}
 	//sum all utilization.
-	new_task->task_util = (float)new_task->read_num*READ_LTN / (float)new_task->read_period + 
-						  (float)new_task->write_num*WRITE_LTN / (float)new_task->write_period;
+	new_task->task_util = 0.0;
+	if(new_task->write_num != 0)
+		new_task->task_util += (float)new_task->write_num*WRITE_LTN / (float)new_task->write_period;
+	if(new_task->read_num != 0)
+		new_task->task_util += (float)new_task->read_num*READ_LTN / (float)new_task->read_period;
 	
 	printf("task ID %d is generated.\n",new_task->task_id);
 	return new_task;
 }
 
-int generate_gcinfo(task_info* task, int chip)
+int generate_overhead(task_info* task, int chip)
 {
 	
 	double gc_threshold = (double)chip*(1.0-OP_RATE)*PAGE_PER_BLOCK;
 	double gc_period_ratio = 0.0;
 	double gc_period_float = 0.0;
 	int temp;
+	int dt_delay;
+	//generate DT only if allocated chip is beyond chip_per_channel	
+	dt_delay = 0;
+	if(chip < WAY_NB)
+		dt_delay = (WAY_NB - chip)*DATA_TRANS;
+	//!generate DT
+
 	//generate GC only if there's write task(identified by positive write period).
-	if(task->write_period > 0)
+	if(task->write_num != 0)
 	{
 		//check how many GCs are necessary for single write job.
 		gc_period_ratio = (float)task->write_num/(float)gc_threshold;
@@ -78,24 +88,18 @@ int generate_gcinfo(task_info* task, int chip)
 		task->gc_period = (int)gc_period_float;
 		
 		//update the task_util.
-		task->task_util = (float)task->read_num*READ_LTN / (float)task->read_period +
-						  (float)task->write_num*WRITE_LTN / (float)task->write_period +
+		task->task_util = (float)(task->read_num*(READ_LTN + dt_delay)) / (float)task->read_period +
+						  (float)(task->write_num*(WRITE_LTN + dt_delay)) / (float)task->write_period +
 						  (float)GC_EXEC / (float)task->gc_period;
 	}
 	else
 	{
-		/*do nothing*/
+		task->gc_period = -1;
+		task->task_util = (float)task->read_num*(READ_LTN + dt_delay) / (float)task->read_period;
 	}
+	//!generate GC
+
 	return 0;
-}
-
-int generate_dtinfo(task_info* task, int alloc_chip)
-{
-	int trans_delay = DATA_TRANS * (WAY_NB - alloc_chip);
-	task->task_util = (float)new_task->read_num * (READ_LTN + trans_delay) / (float)new_task->read_period +
-			  (float)new_task->write_num * (WRITE_LTN + trans_delay) / (float)new_task->write_period +
-			  (float)GC_EXEC / (float)task->gc_period;
-
 }
 
 int destroy_taskinfo(int task_num, task_info** task)
@@ -200,18 +204,28 @@ task_info** generate_taskset(int task_num, double util,int chip)
 	
 	//generate Uunifast style utilization taskset.
 	//if necessary, specify the period, calculate the number of page, and insert it as parameter.
-	for(i=0;i<task_num;i++)
-	{
+	for(i=0;i<task_num;i++){
 		rand_ratio1 = rand()%10+1;
 		rand_ratio2 = rand()%10+1;
 		util1 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);
 		util2 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio2 / ((float)rand_ratio1 + (float)rand_ratio2);
-		r_period = (rand()%400 + 100) * 1000;
-		w_period = (rand()%400 + 100) * 1000;
-	        r_num = (int)(util1*(float)r_period / (float)READ_LTN);
-		w_num = (int)(util2*(float)w_period / (float)WRITE_LTN);	
+		r_period = (rand()%400 + 100) * 10000;
+		w_period = (rand()%400 + 100) * 10000;
+	    r_num = (int)(util1*(float)r_period / (float)READ_LTN);
+		w_num = (int)(util2*(float)w_period / (float)WRITE_LTN);
+		//in a case when 100~500ms is not enough to read or write at least 1 page.
+		if(r_num == 0){
+			r_num = 1;
+			r_period = (int)((float)(r_num * READ_LTN)/util1);
+		}
+		if(w_num == 0){
+			w_num = 1;
+			w_period = (int)((float)(w_num * WRITE_LTN)/util2);
+		}
+		//edge case done
+		printf("r_num : %d, w_num : %d\n",r_num,w_num);	
 		taskset[i] = generate_taskinfo(i,util1,util2,r_num,w_num);
-		print_taskinfo(taskset[i]);
+		//print_taskinfo(taskset[i]);
 	}
 	return taskset;	
 }
