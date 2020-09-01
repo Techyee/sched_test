@@ -27,7 +27,7 @@ int find_least_in_bin(int task_num, int target_bin, task_info** task)
 	return res;	
 }
 
-int pack_channelbin(int task_num, task_info** task,double util_sum)
+int pack_bin(int task_num, task_info** task,double util_sum,int way)
 {
 	/* assuming channel is partitioned, allocate tasks to each bin in WFD.
 	 * WFD orders tasks according to utilization of GC.
@@ -50,7 +50,10 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		//case2: [3-chan,1-chan] bin
 		for(i=0;i<task_num;i++)
 		{//we sort the task according to worst case gc among the bins.
-			generate_overhead(task[i],4);
+			if(way == 0)
+				generate_overhead(task[i],4);
+			else
+				generate_overhead(task[i],1);
 		}
 		
 		//init and sort.
@@ -62,18 +65,24 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		for(i=0;i<task_num;i++){
 			task_info temp;
 			temp = *task[i];
-			generate_overhead(&temp,12);
+			if(way == 0)
+				generate_overhead(&temp,12);
+			else
+				generate_overhead(&temp,3);
 			util1 = temp.task_util;
 			util2 = task[i]->task_util;
+			printf("comparing util : %f, %f\n",util1,util2);
 			if(1.0-bins[0]-util1 < 1.0-bins[1]-util2)//tweaked-WFD
 			{
 				bins[1] += util2;
 				task[i]->bin_alloc = 1;
+				printf("task %d(util:%f) in bin 1\n",i,util2);
 			}
 			else
 			{
 				bins[0] += util1;
 				task[i]->bin_alloc = 0;
+				printf("task %d(util:%f) in bin 0\n",i,util1);
 			}
 		}
 		//add blocking factor.
@@ -91,12 +100,12 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		if((bins[0] <= 1.0) && (bins[1] <= 1.0))
 		{
 			printf("channel packing succedded[3,1], %f %f\n",bins[0],bins[1]);
-			printf("bin allocation result is...\n");
-			for(k=0;k<task_num;k++)
-			{
-				printf("%d ",task[k]->bin_alloc);
-			}
-			printf("\n");	
+//			printf("bin allocation result is...\n");
+//			for(k=0;k<task_num;k++)
+//			{
+//				printf("%d ",task[k]->bin_alloc);
+//			}
+//			printf("\n");	
 			return 0;
 		}
 		else
@@ -110,7 +119,10 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 	    //case1: [2-chan,2-chan] bin
 		 for(i=0;i<task_num;i++)
 		 {
-			 generate_overhead(task[i],8);
+			 if(way==0)
+				 generate_overhead(task[i],8);
+			 else
+				 generate_overhead(task[i],2);
 		 }
 		 
 		 //reinit and sort.
@@ -135,9 +147,9 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		 //add blocking factor
 		 for(i=0;i<bin_max;i++){
 			blocking_period = find_least_in_bin(task_num,i,task);	
-			printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
-																  ,(float)ERASE_LTN / (float)blocking_period
-														,bins[i] + (float)ERASE_LTN / (float)blocking_period);
+//			printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
+//																  ,(float)ERASE_LTN / (float)blocking_period
+//														,bins[i] + (float)ERASE_LTN / (float)blocking_period);
 			bins[i] += (float)ERASE_LTN / blocking_period;
 		 }
 		 //check bin status.
@@ -153,9 +165,13 @@ int pack_channelbin(int task_num, task_info** task,double util_sum)
 		 }
 		//case 1 end.
 	}
+	else{
+		printf("2bin fails. util >= 2.0\n");
+		return 1;
+	}
 }    
 
-int pack_channel_3bin(int task_num, task_info** task, double util_sum)
+int pack_3bin(int task_num, task_info** task, double util_sum,int way)
 {
 	/*packing tasks with 3 bin. partition setting = [2,1,1]
 	 *pack_channel and pack_channel_3bin will be merged someday.
@@ -164,9 +180,14 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 	float util1, util2;
 	double bins[3] = {0.0 , };
 	int blocking_period;
+	task_info* temp;
+	temp = (task_info*)malloc(sizeof(task_info));
 	for(i=0;i<task_num;i++)
 	{
-		generate_overhead(task[i], 4);
+		if(way == 0)
+			generate_overhead(task[i], 4);
+		else
+			generate_overhead(task[i], 1);
 	}
 
 	//init and sort.
@@ -177,11 +198,15 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 	//tweked-WFD packing
 	for(i=0;i<task_num;i++)
 	{
-		task_info temp;
-		temp = *task[i];
-		generate_overhead(&temp,8);
-		util1 = temp.task_util;
+		memcpy(temp,task[i],sizeof(task_info));
+		if(way == 0)
+			generate_overhead(temp,8);
+		else
+			generate_overhead(temp,2);
+
+		util1 = temp->task_util;
 		util2 = task[i]->task_util;
+		//printf("large bin util = %f, small bin util = %f\n",util1,util2);
 		if(1.0 - bins[0] - util1 > 1.0 - bins[1] - util2){
 			target_idx = 0;
 			if(1.0 - bins[0] - util1 > 1.0 - bins[2] - util2){
@@ -206,10 +231,10 @@ int pack_channel_3bin(int task_num, task_info** task, double util_sum)
 	}
 	for(i=0;i<bin_max;i++){
 		blocking_period = find_least_in_bin(task_num,i,task);
-		printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
-															  ,(float)ERASE_LTN / (float)blocking_period
-		   													  ,bins[i] + (float)ERASE_LTN / (float)blocking_period);
-		 bins[i] += (float)ERASE_LTN / (float)task[i]->gc_period;
+//		printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
+//															  ,(float)ERASE_LTN / (float)blocking_period
+//		   													  ,bins[i] + (float)ERASE_LTN / (float)blocking_period);
+		 bins[i] += (float)ERASE_LTN / (float)blocking_period;
 	}
 	
 	if((bins[0] <= 1.0) && (bins[1] <= 1.0) && (bins[2] <= 1.0)){
@@ -230,9 +255,10 @@ int pack_4bin(int task_num, task_info** task, double util_sum,int way)
 	double bins[4] = {0.0, };	
 	for(i=0;i<task_num;i++)
 	{
-		generate_overhead(task[i],4);
-		if(way == 1)
-			generate_dtinfo(task[i],1);
+		if(way == 0)
+			generate_overhead(task[i],4);
+		else
+			generate_overhead(task[i],1);
 	}
 
 	//init and sort.
@@ -254,9 +280,9 @@ int pack_4bin(int task_num, task_info** task, double util_sum,int way)
 	//blocking calc
 	for(i=0;i<bin_max;i++){
 		blocking_period = find_least_in_bin(task_num,i,task);		
-		printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
-															  ,(float)ERASE_LTN / (float)blocking_period
-						  									  ,bins[i] + (float)ERASE_LTN / (float)blocking_period);	
+//		printf("original bin : %f, Blocking : %f, res : %f,\n",bins[i]
+//															  ,(float)ERASE_LTN / (float)blocking_period
+//						  									  ,bins[i] + (float)ERASE_LTN / (float)blocking_period);	
 		bins[i] += (float)ERASE_LTN / (float)blocking_period;
 	}//!blocking calc
 
@@ -280,38 +306,72 @@ int pack_waybin(int task_num, task_info** task,double util_sum)
 	 * WFD orders tasks according to utilization of GC.
 	 * bin overflow directly results in schedulability test fail.
 	 */
-	int i,j,k,tnum;
-	int DT_TRANS;
-	int res, bin_max, target_idx;
-	float util1, util2;
+	int i,j,k,tnum, res;
+	int schedulable;
+	int blocking_period;
+	float util_sum_per_chan = 0.0;
 	double bins[4] = {0.0,};
-	pack_channel_4bin(task_num, task, util_sum);
-	task_info temp_task[task_num];
-	for(i=0;i<CHANNEL_NB;i++){
-		tnum = 0;
-		//pick grouped task according to the bin_alloc value.
-		for(j=0;j<task_num;j++){
-			if(task[i]->bin_alloc = i){
-				temp_task[tnum] = *(task[i]);
-				tnum++;
-			}
-		}//!picking.
-		//init 2bin packing.
-		//re-calculate utilization.
-		for(j=0;j<task_num;j++){
-			generate_overhead(task[i],2);
-		}
-		
-		bin_max = 2;
-		target_idx = 0;
-		quick_sort(task,0,task_num - 1);
-		for(j=0;j<task_num;j++){
-			for(k=0;k<bin_max;k++){
-			}
-		}
-				
-	}	
-	return 1;
+	task_info** task_per_chan;
+	
+	//make channel alloc info for each tasks.
+	pack_4bin(task_num,task,util_sum,0);
+	//!make channel alloc
 
+	//test way-level bp on every channel.
+	for(i=0;i<CHANNEL_NB;i++){
+		//init
+		task_per_chan = (task_info**)malloc(sizeof(task_info*)*task_num);
+		tnum = 0;
+		util_sum_per_chan = 0.0;
+		//!init 
+
+		printf("grouped task indexes:");
+		//group the tasks according to the bin_alloc value.
+		for(j=0;j<task_num;j++){
+			if(task[j]->bin_alloc == i){
+				task_per_chan[tnum] = (task_info*)malloc(sizeof(task_info));
+				memcpy(task_per_chan[tnum],task[j],sizeof(task_info));
+				tnum++;
+				util_sum_per_chan += task[j]->task_util;
+				printf("%d ",j);
+			}
+			
+		}
+		printf("\n");
+		//!group task.
+		blocking_period = find_least_in_bin(task_num,i,task);
+		util_sum_per_chan += (float)ERASE_LTN / (float)blocking_period;
+		printf("channel %d task_num : %d, util_sum : %f\n",i,tnum,util_sum_per_chan);
+
+		if(util_sum_per_chan <= 1.0){
+			for(j=0;j<tnum;j++){
+				free(task_per_chan[j]);
+			}
+			continue;
+		}
+
+		//way-level bp
+		res = pack_bin(tnum,task_per_chan,util_sum_per_chan,1);
+		res = pack_3bin(tnum,task_per_chan,util_sum_per_chan,1);
+		res = pack_4bin(tnum,task_per_chan,util_sum_per_chan,1);
+		//!way-level bp
+
+		//free malloc spaces.
+		for(j=0;j<tnum;j++)
+			free(task_per_chan[j]);
+		//!free
+
+		if(res == 0)
+			printf("channel idx %d is schedulable\n",i);
+		else{
+			printf("channel idx %d is unschedulable\n",i);
+			schedulable = 1;
+		}
+	}
+	//!end testing way-level bp
+	if(schedulable == 1)
+		return 1;
+	else
+		return 0;
 }
 

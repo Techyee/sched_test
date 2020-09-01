@@ -42,6 +42,7 @@ task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int 
 		new_task->write_period = -1;
 	}
 	//sum all utilization.
+
 	new_task->task_util = 0.0;
 	if(new_task->write_num != 0)
 		new_task->task_util += (float)new_task->write_num*WRITE_LTN / (float)new_task->write_period;
@@ -115,6 +116,9 @@ int destroy_taskinfo(int task_num, task_info** task)
 
 int print_taskinfo(task_info* task)
 {
+	float rutil = (float)task->read_num*READ_LTN / (float)task->read_period;
+	float wutil = (float)task->write_num*WRITE_LTN / (float)task->write_period;
+	float gcutil = (float)GC_EXEC / (float)task->gc_period;
 	printf("====== taskID : %d ======\n",task->task_id);
 	printf("read_page : %d\n",task->read_num);
 	printf("read_exec : %d\n",task->read_num*READ_LTN);
@@ -124,15 +128,12 @@ int print_taskinfo(task_info* task)
 	printf("write_period : %d\n",task->write_period);
 	printf("gc_period : %d\n",task->gc_period);
 	if(task->gc_period == -1)
-		printf("total_util : %f, r,w,gc :(%f,%f,-10.)\n",task->task_util,
-								    (float)task->read_num*READ_LTN / (float)task->read_period,
-								    (float)task->write_num*WRITE_LTN / (float)task->write_period);
+		printf("total_util : %f, r,w,gc :(%f,%f, none.)\n",task->task_util, rutil, wutil);
 	else
 	{
-		printf("total_util : %f, r,w,gc :(%f,%f,%f)\n",task->task_util,
-									(float)task->read_num*READ_LTN / (float)task->read_period,
-									(float)task->write_num*WRITE_LTN / (float)task->write_period,
-									(float)GC_EXEC / (float)task->gc_period);
+		printf("total_util : %f, r,w,gc :(%f,%f,%f), util_wo_block : %f \n",task->task_util,
+																			rutil, wutil, gcutil,
+																			rutil+wutil+gcutil);
 	}
 	printf("======= INFO END =======\n");
 }
@@ -214,6 +215,7 @@ task_info** generate_taskset(int task_num, double util,int chip)
 	    r_num = (int)(util1*(float)r_period / (float)READ_LTN);
 		w_num = (int)(util2*(float)w_period / (float)WRITE_LTN);
 		//in a case when 100~500ms is not enough to read or write at least 1 page.
+		
 		if(r_num == 0){
 			r_num = 1;
 			r_period = (int)((float)(r_num * READ_LTN)/util1);
@@ -223,9 +225,9 @@ task_info** generate_taskset(int task_num, double util,int chip)
 			w_period = (int)((float)(w_num * WRITE_LTN)/util2);
 		}
 		//edge case done
-		printf("r_num : %d, w_num : %d\n",r_num,w_num);	
+		
 		taskset[i] = generate_taskinfo(i,util1,util2,r_num,w_num);
-		//print_taskinfo(taskset[i]);
+		print_taskinfo(taskset[i]);
 	}
 	return taskset;	
 }

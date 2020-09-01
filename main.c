@@ -6,6 +6,7 @@ int main(void)
 	int i,j;
 	int res, success_part, fail_part;
 	int res2, success_ttc, fail_ttc;
+	int success_chan, success_way;
 	int task_num;
 	FILE *fp;
 	FILE *fp2;
@@ -16,11 +17,43 @@ int main(void)
 	task_info* test_task2;
 
 	srand(time(NULL));
-	task_num = 10;
-	test_task = generate_taskset(task_num, 2.0, 16);
-	test_TTC(task_num,test_task,fp);
+	task_num = 20;
 
-/*		
+	
+	test_task = generate_taskset(task_num,4.0,16);
+	generate_overhead(test_task[0],4);
+	print_taskinfo(test_task[0]);
+	generate_overhead(test_task[0],1);
+	print_taskinfo(test_task[0]);
+	res = test_TTC(task_num,test_task,fp2);
+	
+	
+	/*
+	//0.0~4.0 util generation.
+	for(j=0;j<40;j++){
+		success_chan = 0;
+		success_way = 0;
+		fail_ttc = 0;
+		
+		for(i=0;i<200;i++){
+			test_task = generate_taskset(task_num,0.1*j+0.1, 16);
+			res = test_TTC(task_num,test_task,fp2);
+			if (res == 0){
+				success_chan++;
+			}
+			else if(res == 1){
+				success_way++;
+			}
+			else if(res == 2){
+				fail_ttc++;
+			}
+			destroy_taskinfo(task_num,test_task);
+		}	
+		fprintf(fp2,"success_chan : %d, success_way : %d, fail : %d\n",success_chan, success_way, fail_ttc);
+	}
+	*/
+
+	/*		
 	srand(time(NULL));
 	for(i=0;i<20;i++){
 		success_part = 0;
@@ -48,7 +81,7 @@ int main(void)
 		//fprintf(fp,"%f, %d, %d, %d\n",0.1*i + 0.1,success_part,fail_part,success_part+fail_part);
 		fprintf(fp2,"%f, %d, %d, %d\n",0.1*i + 0.1,success_ttc,fail_ttc,success_ttc + fail_ttc);
 	}
-*/	
+	*/	
 	fclose(fp);
 	fclose(fp2);
 	return 0;
