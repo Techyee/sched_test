@@ -102,6 +102,23 @@ int generate_overhead(task_info* task, int chip)
 
 	return 0;
 }
+int generate_dt(task_info* task, int chip){
+	int dt_delay = 0;
+	int temp;
+	if(chip < WAY_NB)
+		dt_delay = (WAY_NB - chip)*DATA_TRANS;
+	
+	if(task->gc_period > 0){
+		task->task_util = (float)(task->read_num*(READ_LTN + dt_delay)) / (float)task->read_period +
+						  (float)(task->write_num*(WRITE_LTN + dt_delay)) / (float)task->write_period +
+						  (float)GC_EXEC / (float)task->gc_period;
+	}
+	else{
+		task->task_util = (float)(task->read_num*(READ_LTN + dt_delay)) / (float)task->read_period +
+						 (float)(task->write_num*(WRITE_LTN + dt_delay)) / (float)task->write_period;
+	}
+	return 0;
+}
 
 int destroy_taskinfo(int task_num, task_info** task)
 {
@@ -177,7 +194,7 @@ task_info* generate_wandgc(int tid, double util, int wnum, int chip,FILE* fp)
 	
 }
 
-task_info** generate_taskset(int task_num, double util,int chip)
+task_info** generate_taskset(int task_num, double util,int chip,int long_p)
 {
 	// make a taskset using a generate_taskinfo function.
 	int i;
@@ -210,22 +227,29 @@ task_info** generate_taskset(int task_num, double util,int chip)
 		rand_ratio2 = rand()%10+1;
 		util1 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);
 		util2 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio2 / ((float)rand_ratio1 + (float)rand_ratio2);
-		r_period = (rand()%400 + 100) * 10000;
-		w_period = (rand()%400 + 100) * 10000;
-	    r_num = (int)(util1*(float)r_period / (float)READ_LTN);
-		w_num = (int)(util2*(float)w_period / (float)WRITE_LTN);
-		//in a case when 100~500ms is not enough to read or write at least 1 page.
+
+		if(long_p == 1){
+			r_period = (rand()%400 + 100) * 10000;
+			w_period = (rand()%400 + 100) * 10000;
+	    	r_num = (int)(util1*(float)r_period / (float)READ_LTN);
+			w_num = (int)(util2*(float)w_period / (float)WRITE_LTN);
+			//in a case when 100~500ms is not enough to read or write at least 1 page.
 		
-		if(r_num == 0){
-			r_num = 1;
-			r_period = (int)((float)(r_num * READ_LTN)/util1);
+			if(r_num == 0){
+				r_num = 1;
+				r_period = (int)((float)(r_num * READ_LTN)/util1);
+			}
+			if(w_num == 0){
+				w_num = 1;
+				w_period = (int)((float)(w_num * WRITE_LTN)/util2);
+			}
+			//edge case done
 		}
-		if(w_num == 0){
-			w_num = 1;
-			w_period = (int)((float)(w_num * WRITE_LTN)/util2);
+
+		else{
+			r_num = rand()%30 + 1;
+			w_num = rand()%30 + 1;
 		}
-		//edge case done
-		
 		taskset[i] = generate_taskinfo(i,util1,util2,r_num,w_num);
 		print_taskinfo(taskset[i]);
 	}

@@ -9,24 +9,24 @@ int* test_naive(int task_num, task_info** task){
 
 	//init
 	int i;
-	int* ttc_alloc = (int*)malloc(sizeof(int)*task_num);
 	int chip = CHANNEL_NB * WAY_NB;
 	int chip_per_task = chip / task_num;
+	int* ttc_alloc = (int*)malloc(sizeof(int)*chip);
 	int j = 0;
 	//!init
 	
 	if (chip_per_task == 0){
 		printf("naive allocation impossible!\n");
-		return;
+		return -1;
 	}
 
 	for(i=0;i<chip;i++){//record the alloc.
 		//i-th chip to j-th task(starting from 0th).
 		ttc_alloc[i] = j;
-		if(i % chip_per_task == 0){
+		if((i+1) % chip_per_task == 0){
 		//if j-th task get its share, shift.
-			if(task_idx < task_num)
-				task_idx++;
+			if(j < task_num)
+				j++;
 		}	
 	}
 	return ttc_alloc;
@@ -40,50 +40,53 @@ int test_sched(int task_num, task_info** task, int* ttc_alloc){
 	 */
 
 	//init
-	int i;
+	int i,j;
 	int chip = CHANNEL_NB * WAY_NB;
-	int num_chip_per_task[task_num] = {0, };
+	int num_chip_per_task[task_num];
 	int cur_task;
 	int cur_sched;	
-	//!init
-
-	//check a number of chip per task.
-	int status[task_num]= {-1, };
+	int status[task_num];
 	int idx_task = 0;
 	int idx_chip = 0;
+	for(i=0;i<task_num;i++)
+		num_chip_per_task[i] = 0;
+	for(i=0;i<task_num;i++)
+		status[i] = 0;
+	//!init
+	//record number of chip per task.
 	for(i=0;i<chip;i++){
 		for(j=0;j<task_num;j++){
-			if(ttc_alloc[i] == task_num)
+			if(ttc_alloc[i] == j)
 				num_chip_per_task[j] += 1;
 		}
 	}
-
+	//!record
 	//search through channels.
 	for(i=0;i<CHANNEL_NB;i++){
 		cur_sched = 0;
-		
 		//find the current chan status through checking chips
 		for(j=0;j<WAY_NB;j++){
 			cur_task = ttc_alloc[4*i+j];
 			status[cur_task] += 1;
 		}
-
 		//check sched if current channel has j-th task on some chip
 		for(j=0;j<task_num;j++){
-			if(status[j] != -1){
+			if(status[j] != 0){
 				generate_overhead(task[j],num_chip_per_task[j]);
-				generate_dt(task[j],CHANNEL_NB - status[j]);
-			}
+				generate_dt(task[j],WAY_NB - status[j]);
+				if(task[j]->task_util > 1.0){
+					cur_sched = 1;
+					printf("task is unschedulable\n");
+					return 1;
+				}
+				else if (task[j]->task_util <= 1.0){
+				}
+			}	
 		}
-
-		//problem case : task_sched > 1.0
-		if(task[j]->task_util > 1.0){
-			cur_sched = 1;//detected
-		}
-		
+	 		
 		//reset the status value.
 		for(j=0;j<task_num;j++)
-			status[j] = -1;
+			status[j] = 0;
 			
 	}
 	
@@ -92,11 +95,8 @@ int test_sched(int task_num, task_info** task, int* ttc_alloc){
 		printf("taskset is schedulable\n");
 		return 0;
 	}
-	else{
-		printf("taskset is unschedulable\n");
-		return 1;
-	}
-}			
+	
+}		
 			
 		
 		

@@ -34,8 +34,9 @@ typedef struct _chipset{
 //taskset generation code
 task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int wnum);
 task_info* generate_wandgc(int tid, double util, int wnum, int chip, FILE* fp);
-task_info** generate_taskset(int task_num, double util, int chip);
+task_info** generate_taskset(int task_num, double util, int chip,int long_p);
 int generate_overhead(task_info* task, int chip);
+int generate_dt(task_info* task, int chip);
 int destroy_taskinfo(int task_num, task_info** task);
 int print_taskinfo(task_info* task);
 
