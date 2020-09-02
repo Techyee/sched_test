@@ -8,8 +8,8 @@
 #define OP_RATE 0.50
 #define CHANNEL_NB  4 //bin-packing only support 4 chan now.
 #define WAY_NB 4 //bin-packing only support 4 way now.
-#define READ_LTN 50
-#define WRITE_LTN 500
+#define READ_LTN 90
+#define WRITE_LTN 540
 #define ERASE_LTN 5000
 #define DATA_TRANS 40
 #define GC_EXEC (550*128*0.50 + 5000)
@@ -43,8 +43,9 @@ int print_taskinfo(task_info* task);
 int myceil(float input);
 int test_PARTFTL(int task_num, task_info** task, FILE* fp);
 int test_TTC(int task_num, task_info** task, FILE* fp);
-int test_naive(task_info* task);
-int test_UPI(task_info* task);
+int test_sched(int task_num, task_info** task, int* ttc_alloc);
+int* test_naive(int task_num, task_info** task);
+int* test_UPI(task_info* task);
 
 //bin_packing function
 int find_least_in_bin(int task_num, int target_bin, task_info** task);

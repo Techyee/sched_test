@@ -17,16 +17,10 @@ int main(void)
 	task_info* test_task2;
 
 	srand(time(NULL));
-	task_num = 20;
-
+	task_num = 3;
 	
-	test_task = generate_taskset(task_num,4.0,16);
-	generate_overhead(test_task[0],4);
-	print_taskinfo(test_task[0]);
-	generate_overhead(test_task[0],1);
-	print_taskinfo(test_task[0]);
-	res = test_TTC(task_num,test_task,fp2);
-	
+	test_task = generate_taskset(task_num,0.6,16);
+	res = test_PARTFTL(task_num,test_task,fp2);
 	
 	/*
 	//0.0~4.0 util generation.
