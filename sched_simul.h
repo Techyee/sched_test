@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 
+//paramters. based on Utilitarion Performance Isolation(UPI) 
 #define PAGE_PER_BLOCK 128
 #define OP_RATE 0.50
 #define CHANNEL_NB  4 //bin-packing only support 4 chan now.
@@ -13,6 +14,7 @@
 #define ERASE_LTN 5000
 #define DATA_TRANS 40
 #define GC_EXEC (550*128*0.50 + 5000)
+//!parameters
 
 typedef struct _task_info{
 	int task_id;
@@ -33,7 +35,7 @@ typedef struct _chipset{
 
 //taskset generation code
 task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int wnum);
-task_info* generate_wandgc(int tid, double util, int wnum, int chip, FILE* fp);
+task_info* generate_ampcheck(int tid, double util, int num, int chip, int rw, FILE* fp);
 task_info** generate_taskset(int task_num, double util, int chip,int long_p);
 int generate_overhead(task_info* task, int chip);
 int generate_dt(task_info* task, int chip);

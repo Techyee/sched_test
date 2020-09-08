@@ -1,10 +1,5 @@
 #include "sched_simul.h"
 
-//parameters
-//based on Utilitarian Performance Isolation(UPI) paper
-
-//!parameters
-
 task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int wnum)
 {
 	/* making a task_info structure based on random.
@@ -155,7 +150,7 @@ int print_taskinfo(task_info* task)
 	printf("======= INFO END =======\n");
 }
 
-task_info* generate_wandgc(int tid, double util, int wnum, int chip,FILE* fp)
+task_info* generate_ampcheck(int tid, double util, int num, int chip, int rw, FILE* fp)
 {
 	/* make an examplary task to compare the write intensity and gc overhead.
 	 * use this information to check the limit of write util according to the chip num.
@@ -167,29 +162,33 @@ task_info* generate_wandgc(int tid, double util, int wnum, int chip,FILE* fp)
 	
 	task_info* new_task = (task_info*)malloc(sizeof(task_info));	
 	new_task->task_id = tid;
-	new_task->read_num = 0;
-	new_task->write_num = wnum;
-	new_task->read_period = 1;
-	new_task->write_period =(float)wnum * (float)WRITE_LTN * 1.0 / util;
+	if(rw == 0){//write amp check.
+		new_task->read_num = 0;
+		new_task->write_num = num;
+		new_task->read_period = 1;
+		new_task->write_period =(float)num * (float)WRITE_LTN * 1.0 / util;
+	}
+	else if (rw == 1){//read amp check.
+		new_task->write_num = 0;
+		new_task->read_num = num;
+		new_task->write_period = 1;
+		new_task->read_period = (float)num * (float)READ_LTN * 1.0 / util;
+	}
 
-	gc_period_ratio = (float)new_task->write_num/(float)gc_threshold;
-	if(gc_threshold < new_task->write_num)
-	{
-		gc_period_float = (float)new_task->write_period/gc_period_ratio;
+	generate_overhead(new_task, chip);
+
+	if(rw == 0){//record write amp result.
+		fprintf(fp,"%f, %f, %f\n",
+		(float)new_task->write_num*WRITE_LTN/(float)new_task->write_period,
+		(float)GC_EXEC / (float)new_task->gc_period,
+		new_task->task_util);
 	}
-	else
-	{
-		temp = (int)(1.0/gc_period_ratio);
-		gc_period_float = (float)new_task->write_period * temp;
+	else if (rw == 1){//record read amp result.
+		fprintf(fp, "%f, %f, %f\n",
+		(float)new_task->read_num*READ_LTN/(float)new_task->read_period,
+		0.0,
+		new_task->task_util);
 	}
-	new_task->gc_period = (int)gc_period_float;
-	
-	new_task->task_util = (float)new_task->read_num*READ_LTN / (float)new_task->read_period + 
-						  (float)new_task->write_num*WRITE_LTN / (float)new_task->write_period +
-						  (float)GC_EXEC / (float)new_task->gc_period;
-	fprintf(fp,"%f, %f, %f\n",(float)new_task->write_num*WRITE_LTN/(float)new_task->write_period,
-					   		  (float)GC_EXEC / (float)new_task->gc_period,
-					   		  new_task->task_util);
 	return new_task;
 	
 }
@@ -197,6 +196,8 @@ task_info* generate_wandgc(int tid, double util, int wnum, int chip,FILE* fp)
 task_info** generate_taskset(int task_num, double util,int chip,int long_p)
 {
 	// make a taskset using a generate_taskinfo function.
+	// if long_p is specified, generate period > 100ms to ignore the blocking factor.
+
 	int i;
 	double total_util, util1, util2;
 	int rand_ratio1, rand_ratio2;
@@ -214,8 +215,7 @@ task_info** generate_taskset(int task_num, double util,int chip,int long_p)
 	taskset = (task_info**)malloc(sizeof(task_info*)*task_num);
 	
 	//generate util ratio randomly.
-	for(i=0;i<task_num;i++)
-	{
+	for(i=0;i<task_num;i++){
 		util_ratios[i] = rand()%10 + 1;
 		util_ratio_sum += util_ratios[i];
 	}

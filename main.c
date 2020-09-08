@@ -13,22 +13,22 @@ int main(void)
 	FILE *fp;
 	FILE *fp2;
 	FILE *fp3;
-
+	FILE *fp4;
 	fp = fopen("PARTFTL_result.csv","w");
 	fp2 = fopen("TTC_result.csv","w");
 	fp3 = fopen("naive_result.csv","w");
+	fp4 = fopen("util_profile.csv","w");
 	task_info** test_task;
 	task_info* test_task2;
 
 	srand(time(NULL));
 	task_num = 8;
-	/*	
-	test_task = generate_taskset(task_num,4.0,16,0);
-	res_ptr = test_naive(task_num,test_task);
-	res3 = test_sched(task_num,test_task,res_ptr);
-	*/
 	
-	
+	for(i=0;i<CHANNEL_NB*WAY_NB;i++){
+		for(j=0;j<20;j++){
+			generate_ampcheck(0,0.05*(j+1),8,i,1,fp4);
+		}
+	}
 	/*
 	//0.0~4.0 util generation.
 	for(j=0;j<40;j++){
@@ -54,7 +54,7 @@ int main(void)
 	}
 	*/
 
-		
+	/*		
 	srand(time(NULL));
 	for(i=0;i<40;i++){
 		success_part = 0;
@@ -100,10 +100,10 @@ int main(void)
 		fprintf(fp2,"%f, %d, %d, %d, %d\n",0.1*i + 0.1,success_chan,success_way,fail_ttc,success_chan+success_way+fail_ttc);
 		fprintf(fp3,"%f, %d, %d, %d\n",0.1*i+ 0.1,success_naive,fail_naive,success_naive+fail_naive);
 	}
-		
+	*/	
 	fclose(fp);
 	fclose(fp2);
 	fclose(fp3);
-	
+	fclose(fp4);
 	return 0;
 }
