@@ -84,9 +84,15 @@ int generate_overhead(task_info* task, int chip)
 		task->gc_period = (int)gc_period_float;
 		
 		//update the task_util.
-		task->task_util = (float)(task->read_num*(READ_LTN + dt_delay)) / (float)task->read_period +
-						  (float)(task->write_num*(WRITE_LTN + dt_delay)) / (float)task->write_period +
-						  (float)GC_EXEC / (float)task->gc_period;
+		if(task->read_num != 0){
+			task->task_util = (float)(task->read_num*(READ_LTN + dt_delay)) / (float)task->read_period +
+							  (float)(task->write_num*(WRITE_LTN + dt_delay)) / (float)task->write_period +
+							  (float)GC_EXEC / (float)task->gc_period;
+		}
+		else{
+			task->task_util = (float)(task->write_num*(WRITE_LTN + dt_delay)) / (float)task->write_period +
+							  (float)GC_EXEC / (float)task->gc_period;
+		}
 	}
 	else
 	{
@@ -213,11 +219,28 @@ task_info** generate_taskset(int task_num, double util,int chip,int long_p)
 	total_util = util;
 	util_ratio_sum = 0;
 	taskset = (task_info**)malloc(sizeof(task_info*)*task_num);
-	
+	int safe_util = -1;
 	//generate util ratio randomly.
-	for(i=0;i<task_num;i++){
-		util_ratios[i] = rand()%10 + 1;
-		util_ratio_sum += util_ratios[i];
+	//do the exception handling(if util > 1.0, re-generate the ratio.)
+
+util_gen:
+	safe_util = -1;
+	while(safe_util != 1){
+		util_ratio_sum = 0;
+		for(i=0;i<task_num;i++){
+			util_ratios[i] = rand()%10 + 1;
+			util_ratio_sum += util_ratios[i];
+		}
+		int safe_util_cnt = 0;
+		for(i=0;i<task_num;i++){
+			if((float)util_ratios[i] /(float)util_ratio_sum * util >= 1.0){
+				printf("task util over 1.0. regenerating...\n");
+				safe_util = -1;
+				break;
+			}
+			else{safe_util_cnt += 1;}
+		}
+		if(safe_util_cnt == task_num){safe_util = 1;}
 	}
 	
 	//generate Uunifast style utilization taskset.
@@ -251,7 +274,13 @@ task_info** generate_taskset(int task_num, double util,int chip,int long_p)
 			w_num = rand()%30 + 1;
 		}
 		taskset[i] = generate_taskinfo(i,util1,util2,r_num,w_num);
-		print_taskinfo(taskset[i]);
+		generate_overhead(taskset[i],16);
+		if(taskset[i]->task_util > 1.0)
+		{
+			printf("task %d is too intensive, util %f\n",i,taskset[i]->task_util);
+			goto util_gen;
+		}
+		//print_taskinfo(taskset[i]);
 	}
 	return taskset;	
 }

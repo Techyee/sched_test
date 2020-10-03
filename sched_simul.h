@@ -4,13 +4,14 @@
 #include <math.h>
 #include <string.h>
 
-//paramters. based on Utilitarion Performance Isolation(UPI) 
+//paramters. based on Utilitarion Performance Isolation(UPI)
+
 #define PAGE_PER_BLOCK 128
 #define OP_RATE 0.50
 #define CHANNEL_NB  4 //bin-packing only support 4 chan now.
 #define WAY_NB 4 //bin-packing only support 4 way now.
-#define READ_LTN 90
-#define WRITE_LTN 540
+#define READ_LTN (50+40) //assuming 1 plane per chip.
+#define WRITE_LTN (40+500) //assuming 1 plane per chip.
 #define ERASE_LTN 5000
 #define DATA_TRANS 40
 #define GC_EXEC (550*128*0.50 + 5000)
@@ -26,6 +27,14 @@ typedef struct _task_info{
 	int gc_period;
 	float task_util;
 }task_info;
+
+typedef struct ttc_allocation{
+	int task_num;
+	int chip_num;
+	int task_ids[16];
+	task_info* task_info_ptrs[16];
+	float total_task_util;
+}alloc_set;
 
 typedef struct _chipset{
 	int idx;
@@ -46,6 +55,9 @@ int print_taskinfo(task_info* task);
 int myceil(float input);
 int test_PARTFTL(int task_num, task_info** task, FILE* fp);
 int test_TTC(int task_num, task_info** task, FILE* fp);
+int test_TTC_new(int task_num, task_info** task, FILE* fp, int* details,float* throughput);
+int test_TTC_reverse(int task_num, task_info** task, FILE* fp, float* throughput);
+int n_chan_test_TTC(int task_num, task_info** task, int channum, float* throughput);
 int test_sched(int task_num, task_info** task, int* ttc_alloc);
 int* test_naive(int task_num, task_info** task);
 int* test_UPI(task_info* task);
@@ -57,6 +69,23 @@ int pack_3bin(int task_num, task_info** task, double util_sum,int way);
 int pack_4bin(int task_num, task_info** task, double util_sum, int way);
 int pack_waybin(int task_num, task_info** task,double util_sum);
 
+//bin_packing for maximal BE bandwidth + bin-packing refactoring.
+alloc_set** pack_bin_new(int task_num, int bin_num, task_info** task, int* config, int way, int* sched_res);
+alloc_set** free_allocset(alloc_set** target, int num);
+int reverse_pack(int task_num, task_info** task, double util_sum);
+
 //utils
 void swap(task_info* a, task_info* b);
 void quick_sort(task_info** task, int low, int high);
+
+//gcd
+int gcd(int a, int b);
+int lcm(int a, int b);
+
+//best effort station 
+float calc_RT_write(int hyp,float util, int chip_num);
+float calc_RT_read(int hyp, float util, int chip_num);
+float calc_empty_write(int num, int way);
+float calc_empty_read(int num, int way);
+
+int check_max_throughput(alloc_set** set, int bin_num);
