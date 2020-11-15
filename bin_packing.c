@@ -8,19 +8,24 @@ int find_least_in_bin(int task_num, int target_bin, task_info** task)
 	i = 0;
 	for(i=0;i<task_num;i++){
 		if(task[i]->bin_alloc == target_bin){
-			if(res == -1){ //init
-				res = task[i]->read_period;
-				if (task[i]->read_period >= task[i]->write_period){
-					res = task[i]->write_period;
-				}
+			int temp;
+			//find least period.
+			if(task[i]->read_period < task[i]->write_period &&(task[i]->read_period >= 0))
+				temp = task[i]->read_period;
+			else
+				temp = task[i]->write_period;
+			
+			if(temp > task[i]->gc_period &&(task[i]->gc_period >= 0))
+				temp = task[i]->gc_period;
+			else{ /* do nothing */ }
+			//found.
+
+			if(res == -1){//init case
+				res = temp;
 			}
-			else{//choose the minimum task_period!
-				if(res >= task[i]->read_period){
-					res = task[i]->read_period;
-				}
-				if(res >= task[i]->write_period){
-					res = task[i]->write_period;
-				}
+			else{//non-init case : compare
+				if (res > temp)
+					res = temp;
 			}
 		}
 	}

@@ -7,6 +7,7 @@ int check_sched(alloc_set** targ, int num, int sched_res){
 	else
 		return 0;
 }
+
 int test_TTC_new(int task_num, task_info** task, FILE* fp, int* detail, float* throughputs){
 	//possible allocation param.
 	int config0[1] = {4};
@@ -18,7 +19,7 @@ int test_TTC_new(int task_num, task_info** task, FILE* fp, int* detail, float* t
 	int way_task_num = 0;
 	task_info** way_task = NULL;
 	alloc_set** res;
-	int sched_res;
+	int sched_res = 0;
 	int way_sched_res[4] = {0, };
 	float BE_write_throughput[4];
 	float BE_read_throughput[4];
@@ -184,6 +185,8 @@ int test_TTC_new(int task_num, task_info** task, FILE* fp, int* detail, float* t
 	for(int i=0;i<CHANNEL_NB;i++){
 		if(way_sched_res[i] == -1){
 			printf("task is unschedulable.\n");
+			throughputs[0] = 0.0;
+			throughputs[1] = 0.0;
 			return -1;
 		}
 			
@@ -196,50 +199,8 @@ int test_TTC_new(int task_num, task_info** task, FILE* fp, int* detail, float* t
 	return 1;
 
 }
-void calc_chan_throughput(alloc_set** set, int set_num, float* throughputs){
-	//a calculating logic for reverse packing.
-	//for each channel, calc RT_throughput + BE_throughput.
-	float BE_write_throughput = 0.0;
-	float BE_read_throughput = 0.0;
-	int empty_chip = WAY_NB;
-	//RT chip calc.
-	for(int i=0;i<set_num;i++){
-		printf("[calc_chan]chip num is %d\n",set[i]->chip_num);
-		empty_chip -= set[i]->chip_num;
-		BE_write_throughput += calc_RT_write(1,1.0 - set[i]->total_task_util,set[i]->chip_num);
-		BE_read_throughput += calc_RT_read(1,1.0 - set[i]->total_task_util,set[i]->chip_num);
-	}
-	
-	//empty chip calc.
-	if (empty_chip == WAY_NB){//free channel.
-		BE_write_throughput += calc_empty_write(1,0);
-		BE_read_throughput += calc_empty_read(1,0);
-	}
-	else if((empty_chip != 0) && (empty_chip < WAY_NB)){//free chip exist.
-		BE_write_throughput += calc_empty_write(empty_chip,1);
-		BE_read_throughput += calc_empty_read(empty_chip,1);
-	}
 
-	//add calculated throughput.
-	throughputs[0] += BE_write_throughput;
-	throughputs[1] += BE_read_throughput;
-	return NULL;
-}
 int test_TTC_reverse(int task_num, task_info** task, FILE*fp, float* throughputs){
-	//reverse_packing will try to densely pack the given taskset.
-	//few more bin configuration is considered(2 more)
-	//if empty chip or channel exists, BE throughput will be higher.
-
-	int config0[1] = {1};
-	int config1[2] = {1,1};
-	int config2[2] = {2,1};
-	int config3[3] = {1,1,1};
-	int config4[2] = {3,1};
-	int config5[3] = {2,1,1};
-	int config6[4] = {1,1,1,1};
-	int config7[1] = {4};
-	int config8[2] = {2,2};
-	//1-channel dense packing
 	int sched_res = 0;
 	alloc_set** res;
 
@@ -271,8 +232,12 @@ int test_TTC_reverse(int task_num, task_info** task, FILE*fp, float* throughputs
 		return 0;}
 	printf("!!!! 4 channel dense packing ended.!!!!\n");
 	printf("end of function. task is unschedulable!\n");
+	//scheduling impossible. BE task also fails.
+	throughputs[0] = 0.0;
+	throughputs[1] = 0.0;
 	return -1;
 }
+
 
 int n_chan_test_TTC(int task_num, task_info** task, int channum,float* throughputs){
 	
@@ -328,7 +293,7 @@ int n_chan_test_TTC(int task_num, task_info** task, int channum,float* throughpu
 		free(temp);
 
 		temp = pack_bin_new(way_task_num,3,way_task,config3,1,&sched_res);
-		printf("temp status is %d, %d, %d",temp[0]->chip_num,temp[1]->chip_num,temp[2]->chip_num);
+
 		if(check_sched(temp,3,sched_res)){
 			chan_status[i] = 1;
 			calc_chan_throughput(temp,3,throughputs);
@@ -391,92 +356,4 @@ int n_chan_test_TTC(int task_num, task_info** task, int channum,float* throughpu
 	//!end of check sched.
 }
 
-/*
-int test_TTC(int task_num, task_info** task,FILE* fp)
-{
-	int i;
-	int res, res1, res2;
-	int blocking_period;
-	task_info** temp;
-	float util_sum = 0.0;
-	
-	int channel_alloc_pass;
-	int way_alloc_pass;
 
-	//testing global allocation.
-	printf("testing TTC allocation.\n");
-
-
-	float rutil, rutil_sum;
-	float wutil, wutil_sum;
-	float gcutil, gcutil_sum;
-	rutil_sum = 0.0;
-	wutil_sum = 0.0;
-	gcutil_sum = 0.0;
-
-	//global allocation test code
-	for(i=0;i<task_num;i++)
-	{
-		generate_overhead(task[i],16);
-		util_sum += task[i]->task_util;
-		task[i]->bin_alloc = 0;
-		
-		rutil = (float)(task[i]->read_num * READ_LTN) / (float)task[i]->read_period;
-		wutil = (float)(task[i]->write_num * WRITE_LTN) / (float)task[i]->write_period;
-		gcutil = (float)GC_EXEC / (float)task[i]->gc_period;
-		rutil_sum += rutil;
-		wutil_sum += wutil;
-		gcutil_sum += gcutil;
-		printf("rutil,wutil,gcutil = %f, %f, %f\n",rutil,wutil,gcutil);
-		
-	}
-	blocking_period = find_least_in_bin(task_num,0,task);
-	printf("blocking util : %f, b_period :%d, b_exec : %d\n",(float)ERASE_LTN / (float)blocking_period,ERASE_LTN,blocking_period);
-	util_sum += (float)ERASE_LTN / (float)blocking_period;
-
-	//global allocation is enough
-	if(util_sum < 1.0)
-	{
-		printf("task is schedulable(global), %f\n",util_sum);
-		return 0;
-	}
-	else{
-		printf("task utilization is fucked, %f",util_sum);
-	}
-	//!global allocation test.
-
-	if(util_sum < (double)CHANNEL_NB) //try channel-level BP.
-	{
-		res = pack_bin(task_num, task, util_sum,0);
-		res1 = pack_3bin(task_num, task, util_sum,0);
-		res2 = pack_4bin(task_num, task, util_sum,0);
-		if(res == 0 || res1 == 0 || res2 == 0)
-		{
-			printf("task is schedulable(channel)\n");
-			return 0;
-		}	
-		else
-		{
-			printf("task is unschedulable(channel)\n");
-		}
-	}
-
-	if(util_sum < (double)CHANNEL_NB * (double)WAY_NB)//we can also try chip-level BP.
-	{
-		res = pack_waybin(task_num, task, util_sum);
-		if(res == 0)
-		{
-			printf("task is schedulable(way)\n");
-			return 1;
-		}
-		else
-		{
-			printf("task is unschedulable!\n");
-			return 2;
-		}
-	}
-
-	return 0;
-
-}
-*/

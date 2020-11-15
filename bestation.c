@@ -21,12 +21,10 @@ float calc_RT_write(int hyp, float util, int chip_num){
         w_profile->write_period = hyp_us;
         generate_overhead(w_profile, chip_num);
         if(w_profile->task_util >= util){
-            printf("util comparison : %f, %f\n",w_profile->task_util, util);
             break;
         }
         max_wpage = i;
     }
-    printf("(w)bandwidth is %d kb/s\n",max_wpage * 8);
     free(w_profile);
 
     return (max_wpage * 8);
@@ -52,7 +50,6 @@ float calc_RT_read(int hyp, float util, int chip_num){
         }
         max_rpage = i;
     }
-    printf("(r)bandwidth is %d kb/s\n", max_rpage * 8);
     free(r_profile);
 
     return (max_rpage * 8);
@@ -73,12 +70,12 @@ float calc_empty_write(int num, int way){
     }
     else if(way == 1){//n empty chips exist.
         //since RT task exists on same channel, assume transfer overhead.
-        page_num = OP_RATE * PAGE_PER_BLOCK;
-        period = page_num * (WRITE_LTN+DATA_TRANS*(WAY_NB - num)) + GC_EXEC;
-        
+        page_num = OP_RATE * PAGE_PER_BLOCK * num;
+        period = OP_RATE * PAGE_PER_BLOCK * WRITE_LTN + GC_EXEC;
+        //at most data transfer can hamper (WAY_NB - num)
         throughput = (float)page_num * pagesize / (float)period;
         //Kilobyte per second, fully parallel op.
-        throughput = throughput * 1000000.0 * num / 1024.0;
+        throughput = throughput * 1000000.0 / 1024.0;
     }
  
     return throughput;
@@ -100,9 +97,6 @@ float calc_empty_read(int num, int way){
     }
     else if(way == 1){//n empty chips exist.
         //since RT task exists on same channel, assume transfer overhead.
-        page_num = num;
-
-
         page_num = 1;
         period = DATA_TRANS * WAY_NB ;     
 
@@ -138,4 +132,55 @@ int check_max_throughput(alloc_set** set, int bin_num){
     }
     printf("max write-only page : %d, max read-only page : %d\n",total_w,total_r);
 
+}
+
+void calc_chan_throughput(alloc_set** set, int set_num, float* throughputs){
+	//a calculating logic for reverse packing.
+	//for each channel, calc RT_throughput + BE_throughput.
+	float BE_write_throughput = 0.0;
+	float BE_read_throughput = 0.0;
+	int empty_chip = WAY_NB;
+	//RT chip calc.
+	for(int i=0;i<set_num;i++){
+		if(set[i]->task_num > 0){
+			empty_chip -= set[i]->chip_num;
+			BE_write_throughput += calc_RT_write(1,1.0 - set[i]->total_task_util,set[i]->chip_num);
+			BE_read_throughput += calc_RT_read(1,1.0 - set[i]->total_task_util,set[i]->chip_num);
+		}
+	}
+	
+	//empty chip calc.
+	if (empty_chip == WAY_NB){//free channel.
+		BE_write_throughput += calc_empty_write(1,0);
+		BE_read_throughput += calc_empty_read(1,0);
+	}
+	else if((empty_chip != 0) && (empty_chip < WAY_NB)){//free chip exist.
+        printf("empty_chip : %d, throughput : %f, %f\n",empty_chip,calc_empty_write(empty_chip,1),calc_empty_read(empty_chip,1));
+		BE_write_throughput += calc_empty_write(empty_chip,1);
+		BE_read_throughput += calc_empty_read(empty_chip,1);
+	}
+
+	//add calculated throughput.
+	printf("this channel shows %f, %f throughput\n",BE_write_throughput, BE_read_throughput);
+	throughputs[0] += BE_write_throughput;
+	throughputs[1] += BE_read_throughput;
+	return NULL;
+}
+
+void calc_glob_throughput(alloc_set** set, int set_num, float* throughputs){
+    float BE_write_throughput = 0.0;
+	float BE_read_throughput = 0.0;
+	int empty_chan = CHANNEL_NB;
+	//RT chan calc.
+	for(int i=0;i<set_num;i++){
+		if(set[i]->task_num > 0){
+			empty_chan -= set[i]->chip_num;
+			BE_write_throughput += calc_RT_write(1,1.0 - set[i]->total_task_util,set[i]->chip_num);
+			BE_read_throughput += calc_RT_read(1,1.0 - set[i]->total_task_util,set[i]->chip_num);
+		}
+	}
+    //RT empty chan calc.
+    BE_write_throughput += calc_empty_write(empty_chan,0);
+    BE_read_throughput += calc_empty_read(empty_chan,0);
+    return NULL;
 }

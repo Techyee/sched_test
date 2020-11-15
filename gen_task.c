@@ -14,7 +14,7 @@ task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int 
 	new_task->task_id = tid;
 	new_task->read_num = rnum;
 	new_task->write_num = wnum;
-
+	new_task->bin_alloc = -1;
 	//if num is not specified, randomnize the num.
 	if(rnum == -1)
 		new_task->read_num = rand()%30 + 1;
@@ -56,10 +56,7 @@ int generate_overhead(task_info* task, int chip)
 	double gc_period_float = 0.0;
 	int temp;
 	int dt_delay;
-	//generate DT only if allocated chip is beyond chip_per_channel	
-	dt_delay = 0;
-	if(chip < WAY_NB)
-		dt_delay = (WAY_NB - chip)*DATA_TRANS;
+	dt_delay = ((WAY_NB - (chip%WAY_NB))%WAY_NB)*DATA_TRANS;
 	//!generate DT
 
 	//generate GC only if there's write task(identified by positive write period).
@@ -199,7 +196,45 @@ task_info* generate_ampcheck(int tid, double util, int num, int chip, int rw, FI
 	
 }
 
-task_info** generate_taskset(int task_num, double util,int chip,int long_p)
+task_info** generate_heavyset(int task_num, int heavy_task_num, float threshold){
+	int r_period, r_num;
+	int w_period, w_num;
+	float w_util, r_util;
+	int leftover = (0.7 - threshold)*1000;//task util = 0.5~0.7
+	int thres_div = threshold*1000;
+	task_info** taskset;
+	taskset = (task_info**)malloc(sizeof(task_info*)*task_num);
+	for(int i=0;i<task_num;i++){
+		if(i<heavy_task_num){
+			w_util = threshold + rand()%leftover*0.001;
+			w_period = (rand()%400 + 100) * 1000; //100~500ms
+			w_num = (int)(w_util*(float)w_period / (float)WRITE_LTN);
+			taskset[i] = generate_taskinfo(i,0.0,w_util,0,w_num);
+		}
+		else{
+			w_util = rand()%thres_div * 0.001 / 2;
+			w_period = (rand()%400 + 100) * 1000;
+			r_util = rand()%thres_div * 0.001 / 2;
+			r_period = (rand()%400 + 100) * 1000;
+			w_num = (int)(w_util*(float)w_period / (float)WRITE_LTN);
+			r_num = (int)(r_util*(float)r_period / (float)WRITE_LTN);
+			if(r_num == 0){
+				r_num = 1;
+				r_period = (int)((float)(r_num * READ_LTN)/r_util);
+			}
+			if(w_num == 0){
+				w_num = 1;
+				w_period = (int)((float)(w_num * WRITE_LTN)/w_util);
+			}
+			taskset[i] = generate_taskinfo(i,r_util,w_util,r_num,w_num);
+		}
+		generate_overhead(taskset[i],16);
+		print_taskinfo(taskset[i]);
+	}
+	return taskset;
+}
+
+task_info** generate_taskset(int task_num, double util,int chip,float skew, int long_p)
 {
 	// make a taskset using a generate_taskinfo function.
 	// if long_p is specified, generate period > 100ms to ignore the blocking factor.
@@ -214,6 +249,8 @@ task_info** generate_taskset(int task_num, double util,int chip,int long_p)
 	int w_period;
 	int r_num;
 	int w_num;
+	int randutil_task_num; //specify a number of tasks that gets a random ratio.
+	double randutil_task_utilsum; //specify a utilization which is shared between tasks.
 	//init parameters
 	task_info** taskset;
 	total_util = util;
@@ -225,55 +262,99 @@ task_info** generate_taskset(int task_num, double util,int chip,int long_p)
 
 util_gen:
 	safe_util = -1;
+
+	if(skew > 0.0){
+		randutil_task_num = task_num/2;
+		if(task_num >= 16)
+			randutil_task_num = task_num/4 * 3;
+		randutil_task_utilsum = util*(1.0 - skew);
+	}
+	else{
+		randutil_task_num = task_num;
+		randutil_task_utilsum = util;
+	}
+
 	while(safe_util != 1){
 		util_ratio_sum = 0;
-		for(i=0;i<task_num;i++){
+		for(i=0;i<randutil_task_num;i++){
 			util_ratios[i] = rand()%10 + 1;
 			util_ratio_sum += util_ratios[i];
 		}
 		int safe_util_cnt = 0;
-		for(i=0;i<task_num;i++){
-			if((float)util_ratios[i] /(float)util_ratio_sum * util >= 1.0){
+		for(i=0;i<randutil_task_num;i++){
+			if((float)util_ratios[i] /(float)util_ratio_sum * randutil_task_utilsum >= 1.0){
 				printf("task util over 1.0. regenerating...\n");
 				safe_util = -1;
 				break;
 			}
-			else{safe_util_cnt += 1;}
+			else{
+				safe_util_cnt += 1;
+			}
 		}
-		if(safe_util_cnt == task_num){safe_util = 1;}
+
+		if(safe_util_cnt == randutil_task_num){safe_util = 1;}
+
+		printf("ratios :: ");
+		for(i=0;i<task_num;i++)
+			printf("%d ",util_ratios[i]);
+		printf("\n");
 	}
-	
+
 	//generate Uunifast style utilization taskset.
 	//if necessary, specify the period, calculate the number of page, and insert it as parameter.
 	for(i=0;i<task_num;i++){
 		rand_ratio1 = rand()%10+1;
 		rand_ratio2 = rand()%10+1;
-		util1 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);
-		util2 = total_util * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio2 / ((float)rand_ratio1 + (float)rand_ratio2);
 
+		if(i>=randutil_task_num){
+			util1 = (total_util*skew/(task_num-randutil_task_num)) * (float)rand_ratio1 / (float)(rand_ratio1+rand_ratio2);
+			util2 = (total_util*skew/(task_num-randutil_task_num)) * (float)rand_ratio2 / (float)(rand_ratio1+rand_ratio2);
+			printf("util1 + util2 = %f",util1+util2);
+		}
+		else{
+			util1 = total_util*(1-skew) * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio1 / ((float)rand_ratio1 + (float)rand_ratio2);
+			util2 = total_util*(1-skew) * ((float)util_ratios[i] / (float)util_ratio_sum) * (float)rand_ratio2 / ((float)rand_ratio1 + (float)rand_ratio2);
+		}
+
+#ifdef WONLY
+		util2 += util1;
+		util1 = 0.0;
+#endif
+
+#ifdef RONLY
+		util1 += util2;
+		util2 = 0.0;
+#endif
 		if(long_p == 1){
-			r_period = (rand()%400 + 100) * 10000;
-			w_period = (rand()%400 + 100) * 10000;
+			r_period = (rand()%400 + 100) * 1000;
+			w_period = (rand()%400 + 100) * 1000;
 	    	r_num = (int)(util1*(float)r_period / (float)READ_LTN);
 			w_num = (int)(util2*(float)w_period / (float)WRITE_LTN);
+
 			//in a case when 100~500ms is not enough to read or write at least 1 page.
-		
-			if(r_num == 0){
+
+#ifndef WONLY
+			if(r_num == 0){//if r_num is 0 although this is NOT write-only task,
 				r_num = 1;
 				r_period = (int)((float)(r_num * READ_LTN)/util1);
 			}
+#endif
+
+#ifndef RONLY
 			if(w_num == 0){
 				w_num = 1;
 				w_period = (int)((float)(w_num * WRITE_LTN)/util2);
 			}
 			//edge case done
 		}
-
+#endif
 		else{
 			r_num = rand()%30 + 1;
 			w_num = rand()%30 + 1;
 		}
 		taskset[i] = generate_taskinfo(i,util1,util2,r_num,w_num);
+
+
 		generate_overhead(taskset[i],16);
 		if(taskset[i]->task_util > 1.0)
 		{

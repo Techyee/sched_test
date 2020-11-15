@@ -2,10 +2,16 @@ CC=gcc
 CFLAGS= -g -Wall
 TARGET = sched.out
 OBJS = gen_task.o main.o test_partftl.o test_ttc.o test_naive.o utils.o \
-	   bin_packing.o bin_pack_new.o bestation.o
+	   bin_packing.o bin_pack_new.o BFD.o BFD2.o simulator.o bestation.o BFD_cluster.o
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $(OBJS)
+
+BFD.o : BFD.c
+	$(CC) -c -o BFD.o BFD.c
+	
+BFD2.o : BFD2.c
+	$(CC) -c -o BFD2.o BFD2.c
 
 gen_task.o : gen_task.c
 	$(CC) -c -o gen_task.o gen_task.c
@@ -33,6 +39,11 @@ bestation.o : bestation.c
 main.o : main.c
 	$(CC) -c -o main.o main.c
 
+BFD_cluster.o : BFD_cluster.c
+	$(CC) -c -o BFD_cluster.o BFD_cluster.c
+
+simulator.o : simulator.c
+	$(CC) -c -o simulator.o simulator.c
 clean:
 	rm -f *.o
 	rm $(OBJECT) $(TARGET)
