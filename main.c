@@ -3,11 +3,11 @@
 #define reverse
 
 //#define single
-#define unit_test
+//define unit_test
 
 //#define util_change
-//#define heavyset
-//#define test
+#define heavyset
+#define test
 
 int page_per_block = 256;
 int dual_check = 1;
@@ -25,11 +25,13 @@ int main(int argc, char** argv)
 	int res6, success_clu, fail_clu;
 	const char* _task_num = argv[1];
 	const char* _util_limit = argv[2];
+	const char* _util_limit2 = argv[3];
 #ifdef test
 	int task_num = atoi(_task_num);
 	int util_limit = atoi(_util_limit);
-	int skewness = atoi(argv[3]);
-	double skew_util = atof(argv[4]);
+	int util_limit2 = atoi(_util_limit2);
+	int skewness = atoi(argv[4]);
+	double skew_util = atof(argv[5]);
 #endif
 	int* res_ptr;
 
@@ -48,13 +50,12 @@ int main(int argc, char** argv)
 	fp2 = fopen("result_BFD.csv","w");
 	fp3 = fopen("result_naive.csv","w");
 	fp4 = fopen("result_PART.csv","w");
-
 	fp5 = fopen("result_bdw_global.csv","w");
 	fp6 = fopen("result_bdw_BFD.csv","w");
 	fp7 = fopen("result_bdw_naive.csv","w");
 	fp8 = fopen("result_bdw_PART.csv","w");
-
 	fp9 = fopen("result_cluster.csv","w");
+	fp10 = fopen("result_bdw_dual.csv","w");
 	//fp10 = fopen("result_bdw_cluster.csv","w");
 
 	task_info** test_task;
@@ -71,20 +72,20 @@ int main(int argc, char** argv)
 	//example 1. RTIO needs good allocation.
 	float throughputs[2];
 	test_task = (task_info**)malloc(sizeof(task_info*)*4);
-	test_task[0] = generate_taskinfo(0,0.3,0.1,40,12);
-	test_task[1] = generate_taskinfo(1,0.3,0.1,40,12);
-	test_task[2] = generate_taskinfo(2,0.1,0.3,40,12);
-	test_task[3] = generate_taskinfo(3,0.0,0.7,0,6);
+	test_task[0] = generate_taskinfo(0,0.0,0.4,0,12);
+	test_task[1] = generate_taskinfo(1,0.0,0.1,0,12);
+	test_task[2] = generate_taskinfo(2,0.0,0.1,0,12);
+	test_task[3] = generate_taskinfo(3,0.0,0.1,0,12);
 	for(int i=0;i<4;i++)
 	generate_overhead(test_task[i],4);
 	for(int i=0;i<4;i++)
 		print_taskinfo(test_task[i]);
 	printf("===BFD===\n");
-	res_single = n_chan_test_BFD(3,test_task,1,throughputs);
+	res_single = n_chan_test_BFD(4,test_task,1,throughputs);
 	//printf("===GLOB===\n");
 	//res_single = chan_test_global(3,test_task,throughputs);
 	printf("===naive===\n");
-	res_single = chan_test_naive(3,test_task,throughputs);
+	res_single = chan_test_naive(4,test_task,throughputs);
 	//printf("===test1 end====\n");
 	//example 2. BEIO also needs good allocation.
 	/*
@@ -127,9 +128,17 @@ for(i=1;i<5;i++){
 	srand(time(NULL));
 	float throughput[2] = {0.0, };
 	int* details = (int*)malloc(sizeof(int)*4);
-	test_task = generate_taskset(task_num,3.5,16,0.0,1);
-	res = test_TTC_cluster(task_num,test_task,16,&set_num);
-	printf("result : %d\n",res);
+	int IOnum1, IOnum2;
+	for(int i=0;i<1;i++){
+		test_task = generate_taskset(task_num,0.1,16,0.0,1);
+		test_task2 = copy_taskset(task_num,test_task);
+		res = test_TTC_cluster(task_num,test_task2,16,&set_num,&IOnum2);
+		res = test_naive(task_num,test_task,throughput,&IOnum1);
+		printf("%d, %d\n",IOnum1,IOnum2);
+		printf("result : %d\n",res);
+		//free(test_task);
+		//free(test_task2);
+	}
 #endif
 
 #ifdef test
@@ -138,6 +147,10 @@ for(i=1;i<5;i++){
 	float throughput2[2] = {0.0, };
 	float throughput3[2] = {0.0, };
 	float throughput4[2] = {0.0, };
+	int IOnum_cluster;
+	int IOnum_ME;
+	float avg_IO_cluster;
+	float avg_IO_ME;
 	double avg_GLO_throughput[2];
 	double avg_BFD_throughput[2];
 	double avg_naive_throughput[2];
@@ -147,7 +160,7 @@ for(i=1;i<5;i++){
 
 	//testing algorithms using BFD and etc
 #ifdef util_change
-	for(int i=0;i<util_limit;i++){
+	for(int i=util_limit;i<util_limit2;i++){
 #endif
 #ifdef heavyset
 	for(int i=0;i<task_num;i++){
@@ -159,6 +172,9 @@ for(i=1;i<5;i++){
 			avg_naive_throughput[j] = 0.0;
 			avg_PART_throughput[j] = 0.0;
 		}
+		avg_IO_cluster = 0;
+		avg_IO_ME = 0;
+
 		int cnt[4] = {0, };
 
 		success_GLO = 0;
@@ -173,25 +189,30 @@ for(i=1;i<5;i++){
 		fail_PART = 0;
 		success_clu = 0;
 		fail_clu = 0;
-
+		
 		//set sched percentage counter. 
 
 		for(int j=0;j<100;j++){
+			printf("cur util : %f",0.1*i);
 			//gen task. specify skewness if necessary.
 #ifdef util_change
 			test_task = generate_taskset(task_num,0.1*i+0.1,16,0.0,1);
+			test_task2 = copy_taskset(task_num,test_task);
+			
+			
 #endif
 #ifdef heavyset
 			test_task = generate_heavyset(task_num,i,0.5);
 #endif
 			//test schedulability.
-			res = test_global(task_num,test_task,fp, throughput);
-			res2 = test_TTC_BFD2(task_num,test_task,fp,throughput2);
-			res3 = test_naive(task_num,test_task,throughput3);
-			res4 = test_PARTFTL(task_num,test_task,fp, throughput4);
-			res5 = test_TTC_cluster(task_num,test_task,16);
+			int setnum = 16;
+			//res = test_global(task_num,test_task,fp, throughput);
+			//res2 = test_TTC_BFD2(task_num,test_task,fp,throughput2);
+			res3 = test_naive(task_num,test_task,throughput3,&IOnum_ME);
+			//res4 = test_PARTFTL(task_num,test_task,fp, throughput4);
+			res5 = test_TTC_cluster(task_num,test_task,16,&setnum,&IOnum_cluster);
 			if(dual_check == 1){
-				if((res2 == 0) && (res3 == 0)){
+				if((res5 == 0) && (res3 == 0)){
 					for(int k=0;k<2;k++){//for RW
 						avg_GLO_throughput[k] = (avg_GLO_throughput[k]*cnt[0] + throughput[k]) / (cnt[0]+1);
 						throughput[k] = 0.0;
@@ -201,7 +222,10 @@ for(i=1;i<5;i++){
 						throughput3[k] = 0.0;
 						avg_PART_throughput[k] = (avg_PART_throughput[k]*cnt[0] + throughput4[k]) / (cnt[0]+1);
 						throughput4[k] = 0.0;
+						
 					}
+					avg_IO_cluster = (avg_IO_cluster*cnt[0] + IOnum_cluster) / (cnt[0]+1);
+					avg_IO_ME = (avg_IO_ME*cnt[0] + IOnum_ME) / (cnt[0]+1);
 					cnt[0]++;
 				}
 			}
@@ -274,6 +298,7 @@ for(i=1;i<5;i++){
 		fprintf(fp6, "%lf, %lf\n",avg_BFD_throughput[0] / 1024.0, avg_BFD_throughput[1] / 1024.0);
 		fprintf(fp7, "%lf, %lf\n",avg_naive_throughput[0] / 1024.0, avg_naive_throughput[1] / 1024.0);
 		fprintf(fp8, "%lf, %lf\n",avg_PART_throughput[0] / 1024.0, avg_PART_throughput[1] / 1024.0);
+		fprintf(fp10,"%lf, %lf\n",avg_IO_cluster,avg_IO_ME);
 		//fprintf(fp7, "W : %f, %f, %f R : %f, %f, %f\n",stat_minimum[0],stat_maximum[0],stat_avg[0],stat_minimum[1],stat_maximum[1],stat_avg[1]);
 	}
 	
@@ -287,5 +312,6 @@ for(i=1;i<5;i++){
 	fclose(fp7);
 	fclose(fp8);
 	fclose(fp9);
+	fclose(fp10);
 	return 0;
 }

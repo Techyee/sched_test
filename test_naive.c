@@ -17,7 +17,7 @@ alloc_set** pack_naive(int task_num, int bin_num, task_info** task,int* bin_conf
 	}
 	return res;
 }
-int test_naive(int task_num, task_info** task, float* throughput){
+int test_naive(int task_num, task_info** task, float* throughput, int* IOnum){
 	/* a test code for naive allocation.
 	 * naively allocate chips to each task in mutually-exclusive manner.
 	 * in here, we do not consider utilization.
@@ -92,21 +92,21 @@ int test_naive(int task_num, task_info** task, float* throughput){
 	alloc_set** naive_set = pack_naive(task_num,bin_num,task,bin_config,task_config);
 
 	//test naive_set info.
-	for(int i=0;i<bin_num;i++){
-		printf("set info : %d, ", naive_set[i]->chip_num);
-		printf("%d, ",naive_set[i]->task_num);
-		printf("%f\n",naive_set[i]->total_task_util);
-	}
+	//for(int i=0;i<bin_num;i++){
+	//	printf("set info : %d, ", naive_set[i]->chip_num);
+	//	printf("%d, ",naive_set[i]->task_num);
+	//	printf("%f\n",naive_set[i]->total_task_util);
+	//}
 	//test schedulability of naive_set.
 	int bin_pass = 0;
 	int sched = 0;
 	for(int i=0;i<bin_num;i++){
 		float total_util = 0.0;
 		int blocking_period = calc_blocking_set(naive_set[i]);
-		printf("original util : %f, bp : %d, new_util : %f\n",
-		naive_set[i]->total_task_util,
-		calc_blocking_set(naive_set[i]),
-		naive_set[i]->total_task_util + (float)ERASE_LTN / (float)blocking_period);
+		//printf("original util : %f, bp : %d, new_util : %f\n",
+		//naive_set[i]->total_task_util,
+		//calc_blocking_set(naive_set[i]),
+		//naive_set[i]->total_task_util + (float)ERASE_LTN / (float)blocking_period);
 		naive_set[i]->total_task_util += (float)ERASE_LTN / (float)blocking_period;
 		if(naive_set[i]->total_task_util < 1.0)
 			bin_pass++;
@@ -125,6 +125,8 @@ int test_naive(int task_num, task_info** task, float* throughput){
 		throughput[0] = 0.0;
 		throughput[1] = 0.0;
 	}
+	if(sched == 0)
+		EDF_simulator(naive_set,bin_num,2,IOnum,WTEST);
 	return sched;
 }
 

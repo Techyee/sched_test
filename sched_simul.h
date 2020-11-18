@@ -18,6 +18,9 @@
 #define GC_EXEC_RAND_AVG (550*256*0.25 + 5000)
 //!parameters
 
+#define WTEST 1
+#define RTEST 2
+
 //if you want to make skewed dataset, 
 #define SKEW
 //#define WONLY
@@ -70,6 +73,7 @@ typedef struct _jobhead{
 task_info* generate_taskinfo(int tid, double util1, double util2, int rnum, int wnum);
 task_info* generate_ampcheck(int tid, double util, int num, int chip, int rw, FILE* fp);
 task_info** generate_taskset(int task_num, double util, int chip,float skew, int long_p);
+task_info** copy_taskset(int task_num, task_info** target);
 task_info** generate_heavyset(int task_num, int heavy_task_num, float threshold);
 int generate_overhead(task_info* task, int chip);
 int generate_dt(task_info* task, int chip);
@@ -82,7 +86,7 @@ int test_PARTFTL(int task_num, task_info** task, FILE* fp, float* throughput);
 int test_TTC(int task_num, task_info** task, FILE* fp);
 int test_TTC_new(int task_num, task_info** task, FILE* fp, int* details,float* throughput);
 int test_TTC_reverse(int task_num, task_info** task, FILE* fp, float* throughput);
-int test_TTC_cluster(int task_num, task_info** task, int chip_num, int* set_num);
+int test_TTC_cluster(int task_num, task_info** task, int chip_num, int* set_num,int* IO_num);
 
 //allocation related functions.
 int find_least_in_alloc(int task_num, alloc_set* set);
@@ -90,10 +94,11 @@ void allocate_task_to_set(alloc_set* set, task_info* task);
 void dealloc_task_to_set(alloc_set* set);
 void merge_set(alloc_set** set, int max_num);
 void merge_set_new(alloc_set** set, int max_num);
+int calc_blocking_set(alloc_set* set);
 
 int n_chan_test_TTC(int task_num, task_info** task, int channum, float* throughput);
 int test_sched(int task_num, task_info** task, int* ttc_alloc);
-int test_naive(int task_num, task_info** task, float* throughput);
+int test_naive(int task_num, task_info** task, float* throughput, int* IOnum);
 int* test_UPI(task_info* task);
 
 //BFD TTC
@@ -142,4 +147,4 @@ int pack_4bin(int task_num, task_info** task, double util_sum, int way);
 int pack_waybin(int task_num, task_info** task,double util_sum);
 
 //EDF simulatior.
-int EDF_simulator(alloc_set** allocsets, int set_num);
+int EDF_simulator(alloc_set** allocsets, int set_num, int BEtype, int* beband, int IOtype);

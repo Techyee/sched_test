@@ -160,7 +160,7 @@ void merge_set_new(alloc_set** set, int max_num){
             }
         }
     }//found merge target A and B.
-    printf("merge target is %d and %d, util %f, chip_num %d\n",target_A, target_B,new_allocset_ptr->total_task_util,new_allocset_ptr->chip_num);
+    //printf("merge target is %d and %d, util %f, chip_num %d\n",target_A, target_B,new_allocset_ptr->total_task_util,new_allocset_ptr->chip_num);
     //align the set.
     free(set[target_A]);
     free(set[target_B]);

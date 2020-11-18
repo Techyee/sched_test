@@ -1,7 +1,7 @@
 #include "sched_simul.h"
 
 
-int test_TTC_cluster(int task_num, task_info** task, int chip_num, int* set_num){
+int test_TTC_cluster(int task_num, task_info** task, int chip_num, int* set_num, int* IOnum){
     
     int max_set = chip_num;
     alloc_set* temp;
@@ -22,8 +22,8 @@ int test_TTC_cluster(int task_num, task_info** task, int chip_num, int* set_num)
     
     //pack each tasks,making a cluster if necessary.
     for(int i=0;i<task_num;i++){
-        printf("====[TASK %d]====\n",i);
-        print_taskinfo(task[i]);
+        //printf("====[TASK %d]====\n",i);
+        //print_taskinfo(task[i]);
         int cur_set = 0;
         int pass = 0;
         int merge_pass = 0;
@@ -57,7 +57,7 @@ int test_TTC_cluster(int task_num, task_info** task, int chip_num, int* set_num)
             else{//if alloc not failed, allocate task.
                 generate_overhead(task[i],res[target_set]->chip_num);
                 allocate_task_to_set(res[target_set],task[i]);
-                print_set(res,max_set);
+                //print_set(res,max_set);
                 pass = 1;
             }
         }    
@@ -70,7 +70,8 @@ int test_TTC_cluster(int task_num, task_info** task, int chip_num, int* set_num)
     }
     if(bin_check == max_set){//for tasks that succeed, do EDF simulator.
         *set_num = max_set;
-        EDF_simulator(res,max_set);
+        printf("max set is %d\n",max_set);
+        EDF_simulator(res,max_set,1,IOnum,WTEST);
         return 0;
     }
         

@@ -234,6 +234,14 @@ task_info** generate_heavyset(int task_num, int heavy_task_num, float threshold)
 	return taskset;
 }
 
+task_info** copy_taskset(int task_num, task_info** target){
+	task_info** new = (task_info**)malloc(sizeof(task_info*)*task_num);
+	for(int i=0;i<task_num;i++){
+		new[i] = (task_info*)malloc(sizeof(task_info));
+		memcpy(new[i],target[i],sizeof(task_info));
+	}
+	return new;
+}
 task_info** generate_taskset(int task_num, double util,int chip,float skew, int long_p)
 {
 	// make a taskset using a generate_taskinfo function.
